@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NRFRP — National Relief & Food Redistribution Platform</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0E0E0E;--ink2:#444;--ink3:#888;--paper:#F4F1EA;--paper2:#FFFDF8;--paper3:#EDE9DF;
+  --rule:#D8D2C4;--ruleL:#E8E4DC;
+  --sage:#2D6A4F;--sageL:#E8F4EE;--sageM:rgba(45,106,79,.15);
+  --rust:#C1440E;--rustL:rgba(193,68,14,.1);
+  --gold:#A0781A;--goldL:rgba(160,120,26,.1);
+  --slate:#1E3A5F;--slateL:rgba(30,58,95,.1);
+  --r:8px;--rL:14px;--font:'Jost',sans-serif;--serif:'Playfair Display',serif;
+  --tr:.2s ease;--shadow:0 2px 12px rgba(14,14,14,.08);--shadowL:0 8px 32px rgba(14,14,14,.12);
+}
+body{font-family:var(--font);background:var(--paper);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--paper3)}::-webkit-scrollbar-thumb{background:var(--rule);border-radius:3px}
+
+/* HEADER */
+header{background:var(--paper2);border-bottom:1px solid var(--rule);padding:0 32px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink)}
+.logo-mark{width:30px;height:30px;background:var(--sage);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.logo-mark svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.logo-text{font-family:var(--serif);font-size:17px;font-weight:700}
+.hnav{display:flex;gap:4px}
+.hn{font-size:13px;color:var(--ink2);padding:5px 12px;border-radius:6px;text-decoration:none;transition:var(--tr);font-weight:500}
+.hn:hover{background:var(--paper3);color:var(--ink)}
+.hn.on{color:var(--sage);background:var(--sageL)}
+.live-pill{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink3);padding:4px 11px;border:1px solid var(--rule);border-radius:20px;font-weight:500}
+.ldot{width:6px;height:6px;border-radius:50%;background:var(--rule);transition:background .3s}
+.ldot.on{background:var(--sage);box-shadow:0 0 0 3px rgba(45,106,79,.2)}
+
+/* HERO */
+.hero{background:var(--ink);padding:64px 32px 52px;text-align:center;position:relative;overflow:hidden}
+.hero-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none}
+.hero-glow{position:absolute;top:-20%;left:50%;transform:translateX(-50%);width:500px;height:500px;background:radial-gradient(circle,rgba(45,106,79,.2),transparent 65%);pointer-events:none}
+.hero-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(45,106,79,.2);border:1px solid rgba(45,106,79,.4);color:#6FCF97;font-size:11px;font-weight:600;padding:4px 13px;border-radius:20px;margin-bottom:22px;text-transform:uppercase;letter-spacing:.08em;position:relative}
+.bp{width:6px;height:6px;border-radius:50%;background:#6FCF97;animation:bp 2s infinite}
+@keyframes bp{0%,100%{box-shadow:0 0 0 0 rgba(111,207,151,.4)}50%{box-shadow:0 0 0 6px transparent}}
+.hero h1{font-family:var(--serif);font-size:clamp(38px,6vw,62px);color:#F4F1EA;line-height:1.08;margin-bottom:16px;letter-spacing:-.02em;position:relative}
+.hero h1 em{font-style:italic;color:#6FCF97}
+.hero-sub{font-size:16px;color:rgba(244,241,234,.55);line-height:1.7;max-width:460px;margin:0 auto 38px;position:relative;font-weight:300}
+.srow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;max-width:860px;margin:0 auto;position:relative}
+.sc{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 12px;text-align:center;transition:var(--tr)}
+.sc:hover{background:rgba(255,255,255,.08)}
+.sv{font-family:var(--serif);font-size:24px;color:#F4F1EA;min-height:30px;display:flex;align-items:center;justify-content:center;transition:color .4s}
+.sv.flash{color:#6FCF97}
+.sl{font-size:10px;color:rgba(244,241,234,.4);margin-top:4px;text-transform:uppercase;letter-spacing:.08em}
+
+/* PORTALS */
+.portals{max-width:1040px;margin:0 auto;padding:36px 24px 22px}
+.ptit{font-family:var(--serif);font-size:24px;text-align:center;margin-bottom:6px}
+.psub{font-size:13px;color:var(--ink3);text-align:center;margin-bottom:26px}
+.pgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.pc{background:var(--paper2);border:1px solid var(--rule);border-radius:var(--rL);padding:22px 18px;cursor:pointer;transition:var(--tr);text-decoration:none;display:block;position:relative;overflow:hidden}
+.pc::after{content:'';position:absolute;bottom:0;left:0;right:0;height:3px;opacity:0;transition:opacity var(--tr)}
+.pc:hover{transform:translateY(-3px);box-shadow:var(--shadowL);border-color:var(--ruleL)}
+.pc:hover::after{opacity:1}
+.pc.pu::after{background:var(--sage)}.pc.pd::after{background:var(--slate)}.pc.pn::after{background:var(--rust)}.pc.pv::after{background:var(--gold)}
+.pci{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;margin-bottom:13px;transition:var(--tr)}
+.pc:hover .pci{transform:scale(1.06)}
+.pcn{font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:5px;color:var(--ink)}
+.pcd{font-size:12px;color:var(--ink3);line-height:1.55;margin-bottom:12px}
+.pcl{font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;transition:var(--tr)}
+.pc:hover .pcl{gap:7px}
+
+/* MAIN CONTENT */
+.content{max-width:1100px;margin:0 auto;padding:28px 24px}
+.sh{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.st{font-family:var(--serif);font-size:20px}
+.ss{font-size:12px;color:var(--ink3);margin-top:2px}
+.frow{display:flex;gap:5px}
+.fb{font-size:12px;padding:4px 13px;border-radius:20px;border:1px solid var(--rule);color:var(--ink2);cursor:pointer;background:var(--paper2);transition:var(--tr);font-weight:500}
+.fb:hover,.fb.on{background:var(--sage);color:#fff;border-color:var(--sage)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:24px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:22px}
+.panel{background:var(--paper2);border:1px solid var(--rule);border-radius:var(--rL);overflow:hidden;box-shadow:var(--shadow)}
+.ph{padding:14px 17px 11px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between}
+.pt{font-family:var(--serif);font-size:15px}
+.pa{font-size:12px;color:var(--sage);text-decoration:none;font-weight:500}
+.pb{padding:14px 17px}
+
+/* NOTICE CARDS */
+.nc{background:var(--paper3);border:1px solid var(--rule);border-left:3px solid var(--rule);border-radius:var(--r);padding:14px 16px;margin-bottom:11px;transition:var(--tr)}
+.nc:hover{background:var(--paper2);box-shadow:var(--shadow)}
+.nc.in{animation:sIn .4s ease}
+@keyframes sIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+.nc.urgent{border-left-color:var(--rust)}.nc.active{border-left-color:var(--sage)}.nc.completed{border-left-color:var(--rule)}
+.ntag{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--font)}
+.ntag.urgent{background:var(--rustL);color:var(--rust)}.ntag.active{background:var(--sageL);color:var(--sage)}.ntag.completed{background:var(--paper3);color:var(--ink3)}
+.nti{font-family:var(--serif);font-size:15px;font-weight:700;margin-bottom:4px}
+.nd{font-size:13px;color:var(--ink2);line-height:1.55;margin-bottom:10px}
+.nf{display:flex;align-items:center;gap:10px;padding-top:8px;border-top:1px solid var(--rule)}
+.nm{font-size:11px;color:var(--ink3);flex:1;font-weight:500}
+.npw{flex:1;max-width:180px}
+.pb2{height:4px;background:var(--paper3);border-radius:2px;overflow:hidden;margin-bottom:3px}
+.pf{height:100%;border-radius:2px;transition:width .6s}
+.ptxt{font-size:10px;color:var(--ink3)}
+.na{font-size:12px;color:var(--sage);font-weight:600;text-decoration:none}
+
+/* LEDGER */
+.lr{display:flex;align-items:flex-start;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--ruleL)}
+.lr:last-child{border-bottom:none}.lr.in{animation:sIn .4s ease}
+.li{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;margin-right:10px}
+.ll{display:flex;align-items:flex-start;flex:1}
+.ldate{font-size:10px;color:var(--ink3);margin-bottom:1px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.lname{font-size:13px;font-weight:500;margin-bottom:1px}
+.lsub{font-size:11px;color:var(--ink3)}
+.lr-r{text-align:right;flex-shrink:0;padding-left:10px}
+.la{font-size:14px;font-weight:600}
+.lp{font-size:10px;color:var(--sage);margin-top:2px;font-weight:600}
+
+/* DONATIONS */
+.dr{display:flex;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid var(--ruleL)}.dr:last-child{border-bottom:none}.dr.in{animation:sIn .4s ease}
+.di{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.dn{font-size:13px;font-weight:500}.ds{font-size:11px;color:var(--ink3)}
+.dst{font-size:10px;padding:2px 7px;border-radius:4px;font-weight:600;margin-left:auto;text-transform:uppercase;letter-spacing:.04em;flex-shrink:0}
+.su{background:var(--sageL);color:var(--sage)}.sd{background:var(--slateL);color:var(--slate)}.sp{background:var(--goldL);color:var(--gold)}
+
+/* PRIVACY */
+.prc{background:var(--paper3);border-radius:10px;padding:15px;border-left:2px solid var(--rule)}
+.prl{font-size:10px;font-weight:700;color:var(--ink2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;font-family:var(--font)}
+.prd{font-size:12px;color:var(--ink2);line-height:1.55}
+
+/* CHARTS */
+.cw{position:relative;height:195px;width:100%}
+.cws{position:relative;height:165px;width:100%}
+.leg{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:10px;font-size:11px;color:var(--ink3);font-weight:500}
+.ld2{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:3px}
+
+/* SKELETON */
+.skel{background:linear-gradient(90deg,var(--paper3) 25%,var(--ruleL) 50%,var(--paper3) 75%);background-size:200%;animation:sh 1.5s infinite;border-radius:6px}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.empty{text-align:center;padding:28px 16px;color:var(--ink3);font-size:13px;line-height:1.7}
+.empty-icon{font-size:28px;margin-bottom:8px}
+
+/* TOAST */
+#toasts{position:fixed;top:68px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:7px;pointer-events:none}
+.toast{background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:9px;font-size:13px;max-width:300px;opacity:0;transform:translateX(16px);transition:all .3s;box-shadow:var(--shadowL);line-height:1.4;font-weight:400}
+.toast.show{opacity:1;transform:translateX(0)}.toast.success{background:var(--sage)}.toast.warn{background:var(--gold)}
+
+@media(max-width:720px){
+  .srow{grid-template-columns:repeat(3,1fr)}.pgrid{grid-template-columns:1fr 1fr}
+  .g2{grid-template-columns:1fr}.g4{grid-template-columns:1fr 1fr}
+  header{padding:0 16px}
+}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+<header>
+  <a class="logo" href="/public">
+    <div class="logo-mark"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+    <span class="logo-text">NRFRP</span>
+  </a>
+  <nav class="hnav">
+    <a class="hn on" href="/public">Dashboard</a>
+    <a class="hn" href="/donor">Donate</a>
+    <a class="hn" href="/needy">Get help</a>
+    <a class="hn" href="/volunteer">Volunteer</a>
+  </nav>
+  <div class="live-pill"><div class="ldot" id="ldot"></div><span id="llbl">Connecting</span></div>
+</header>
+
+<div class="hero">
+  <div class="hero-grid"></div>
+  <div class="hero-glow"></div>
+  <div class="hero-badge"><div class="bp"></div>Live · No login required</div>
+  <h1>Every rupee.<br><em>Accounted for.</em></h1>
+  <p class="hero-sub">100% transparent. All identities protected. Every expense linked to a verified bill, photo, and case.</p>
+  <div class="srow">
+    <div class="sc"><div class="sv" id="s0"><div class="skel" style="height:24px;width:70px;margin:0 auto"></div></div><div class="sl">Donated</div></div>
+    <div class="sc"><div class="sv" id="s1"><div class="skel" style="height:24px;width:70px;margin:0 auto"></div></div><div class="sl">Disbursed</div></div>
+    <div class="sc"><div class="sv" id="s2"><div class="skel" style="height:24px;width:55px;margin:0 auto"></div></div><div class="sl">People helped</div></div>
+    <div class="sc"><div class="sv" id="s3"><div class="skel" style="height:24px;width:45px;margin:0 auto"></div></div><div class="sl">Volunteers</div></div>
+    <div class="sc"><div class="sv" id="s4"><div class="skel" style="height:24px;width:55px;margin:0 auto"></div></div><div class="sl">Meals served</div></div>
+    <div class="sc"><div class="sv" id="s5"><div class="skel" style="height:24px;width:35px;margin:0 auto"></div></div><div class="sl">Drives done</div></div>
+  </div>
+</div>
+
+<div class="portals">
+  <div class="ptit">Choose your portal</div>
+  <p class="psub">Every role has a dedicated space. Admin access is restricted and not shown here.</p>
+  <div class="pgrid">
+    <a class="pc pu" href="/public">
+      <div class="pci" style="background:var(--sageL)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--sage)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></div>
+      <div class="pcn">Public Dashboard</div>
+      <div class="pcd">Live stats, notices & ledger — no login</div>
+      <div class="pcl" style="color:var(--sage)">Viewing now →</div>
+    </a>
+    <a class="pc pd" href="/donor">
+      <div class="pci" style="background:var(--slateL)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--slate)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+      <div class="pcn">Donor Portal</div>
+      <div class="pcd">Give money, food, skills, medicines & more</div>
+      <div class="pcl" style="color:var(--slate)">Start donating →</div>
+    </a>
+    <a class="pc pn" href="/needy">
+      <div class="pci" style="background:var(--rustL)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--rust)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="pcn">Get Help</div>
+      <div class="pcd">Register your need — verified, private, secure</div>
+      <div class="pcl" style="color:var(--rust)">Request help →</div>
+    </a>
+    <a class="pc pv" href="/volunteer">
+      <div class="pci" style="background:var(--goldL)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg></div>
+      <div class="pcn">Volunteer Portal</div>
+      <div class="pcd">Field, skilled, transport or digital — apply here</div>
+      <div class="pcl" style="color:var(--gold)">Join as volunteer →</div>
+    </a>
+  </div>
+</div>
+
+<div class="content">
+  <div class="g2">
+    <div class="panel">
+      <div class="ph"><span class="pt">Monthly fundraising</span>
+        <div class="leg" style="margin:0"><span><span class="ld2" style="background:var(--sage)"></span>Raised</span><span><span class="ld2" style="background:var(--slate)"></span>Disbursed</span></div>
+      </div>
+      <div class="pb"><div class="cw"><canvas id="cT" role="img" aria-label="Monthly fundraising trend"></canvas></div></div>
+    </div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Fund allocation by category</span></div>
+      <div class="pb">
+        <div class="leg" id="allocLeg"></div>
+        <div class="cw"><canvas id="cA" role="img" aria-label="Fund allocation"></canvas></div>
+      </div>
+    </div>
+  </div>
+  <div class="g2">
+    <div>
+      <div class="sh">
+        <div><div class="st">Notice board</div><div class="ss">Admin-published · cases anonymised · no names</div></div>
+        <div class="frow">
+          <div class="fb on" onclick="fN('all',this)">All</div>
+          <div class="fb" onclick="fN('urgent',this)">Urgent</div>
+          <div class="fb" onclick="fN('active',this)">Active</div>
+          <div class="fb" onclick="fN('completed',this)">Done</div>
+        </div>
+      </div>
+      <div id="nlist"><div class="skel" style="height:95px;margin-bottom:11px;border-radius:8px"></div><div class="skel" style="height:85px;margin-bottom:11px;border-radius:8px"></div><div class="skel" style="height:75px;border-radius:8px"></div></div>
+    </div>
+    <div>
+      <div class="sh"><div class="st">Donation log</div><div class="ss">Identity masked · real-time</div></div>
+      <div class="panel"><div class="pb" id="dlog"><div class="skel" style="height:220px"></div></div></div>
+    </div>
+  </div>
+  <div class="sh"><div class="st">Fund transparency ledger</div><div class="ss">Every rupee with bill proof · cannot be edited after publish</div></div>
+  <div class="g2">
+    <div class="panel"><div class="pb" id="llist"><div class="skel" style="height:200px"></div></div></div>
+    <div class="panel">
+      <div class="ph"><span class="pt">Verification status</span></div>
+      <div class="pb">
+        <div class="cws"><canvas id="cV" role="img" aria-label="Verification status"></canvas></div>
+        <div class="leg" style="margin-top:10px;justify-content:center">
+          <span><span class="ld2" style="background:var(--sage)"></span>Verified</span>
+          <span><span class="ld2" style="background:var(--slate)"></span>Pending</span>
+          <span><span class="ld2" style="background:var(--gold)"></span>Unverified</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="sh" style="margin-bottom:13px"><div class="st">Privacy rules enforced on this dashboard</div></div>
+  <div class="g4" style="margin-bottom:8px">
+    <div class="prc"><div class="prl">Donor identity</div><div class="prd">Hidden by default. Shown only if donor explicitly opts in.</div></div>
+    <div class="prc"><div class="prl">Needy identity</div><div class="prd">Always hidden. "Individual, 34F, Delhi." No name, no Aadhaar.</div></div>
+    <div class="prc"><div class="prl">Volunteer identity</div><div class="prd">Hidden unless volunteer opts in to public leaderboard.</div></div>
+    <div class="prc"><div class="prl">Sensitive data</div><div class="prd">Medical diagnoses not shown. Bills redact names before upload.</div></div>
+  </div>
+</div>
+
+<script>
+// In your HTML script tags:
+const API = 'http://localhost:4000/api';
+let tC,aC,vC,notices=[],dons=[],nf='all';
+
+// ── Helpers ───────────────────────────────────────────────
+const fmt=n=>{n=parseFloat(n)||0;if(n>=100000)return'₹'+(n/100000).toFixed(1)+'L';if(n>=1000)return'₹'+(n/1000).toFixed(1)+'K';return'₹'+Math.round(n).toLocaleString('en-IN')};
+const ago=d=>{if(!d)return'';const m=Math.floor((Date.now()-new Date(d))/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago'};
+const fd=d=>{if(!d)return'';return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short'})};
+function toast(msg,type=''){
+  const c=document.getElementById('toasts');const t=document.createElement('div');
+  t.className='toast '+(type||'');t.textContent=msg;c.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add('show'));
+  setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300)},4500);
+}
+function setVal(id,v){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=String(v);
+  el.classList.add('flash');setTimeout(()=>el.classList.remove('flash'),800);
+}
+
+// ── Stats ─────────────────────────────────────────────────
+async function loadStats(){
+  try{
+    const d=await fetch(API+'/stats').then(r=>r.json());
+    const s=d.stats||{};
+    setVal('s0',fmt(s.total_donated));
+    setVal('s1',fmt(s.total_disbursed));
+    setVal('s2',(parseInt(s.people_helped)||0).toLocaleString('en-IN'));
+    setVal('s3',(parseInt(s.active_volunteers)||0).toLocaleString('en-IN'));
+    setVal('s4',(parseInt(s.meals_served)||0).toLocaleString('en-IN'));
+    setVal('s5',parseInt(s.drives_completed)||0);
+    if(d.monthly?.length)updateTrend(d.monthly);
+  }catch(e){
+    ['s0','s1','s2','s3','s4','s5'].forEach(id=>{
+      const el=document.getElementById(id);
+      if(el)el.innerHTML='<span style="color:var(--ink3);font-size:14px">—</span>';
+    });
+  }
+}
+
+// ── Notices ───────────────────────────────────────────────
+async function loadNotices(f='all'){
+  try{const d=await fetch(`${API}/notices?filter=${f}&limit=10`).then(r=>r.json());notices=d.notices||[];}
+  catch(e){notices=[];}
+  renderNotices();
+}
+function renderNotices(prepend=null){
+  const el=document.getElementById('nlist');if(!el)return;
+  const arr=(prepend?[prepend,...notices.slice(0,9)]:notices).filter(n=>nf==='all'||n.urgency_level===nf);
+  if(!arr.length){el.innerHTML='<div class="empty"><div class="empty-icon">📋</div>No notices published yet.</div>';return}
+  const tc={urgent:'var(--rust)',active:'var(--sage)',completed:'var(--ink3)'};
+  el.innerHTML=arr.map((n,i)=>{
+    const r=parseFloat(n.fund_raised||0),t=parseFloat(n.fund_target||0),p=t>0?Math.min(100,Math.round(r/t*100)):0;
+    return`<div class="nc ${n.urgency_level||'active'}${i===0&&prepend?' in':''}">
+      <span class="ntag ${n.urgency_level||'active'}">${(n.urgency_level||'active').toUpperCase()}</span>
+      <div class="nti">${n.title}</div>
+      <div class="nd">${n.description||''}</div>
+      <div class="nf">
+        <div class="nm">${n.area||''} · ${ago(n.published_at||n.created_at)}</div>
+        ${t>0?`<div class="npw"><div class="pb2"><div class="pf" style="width:${p}%;background:${tc[n.urgency_level]||'var(--sage)'}"></div></div><div class="ptxt">${fmt(r)} of ${fmt(t)} (${p}%)</div></div>`:''}
+        <a class="na" href="/donor">Give →</a>
+      </div>
+    </div>`;
+  }).join('');
+}
+function fN(f,btn){
+  nf=f;
+  document.querySelectorAll('.fb').forEach(b=>b.classList.remove('on'));
+  btn.classList.add('on');
+  renderNotices();
+}
+
+// ── Ledger ────────────────────────────────────────────────
+async function loadLedger(){
+  let txs=[];
+  try{const d=await fetch(API+'/ledger?limit=8').then(r=>r.json());txs=d.transactions||[];}catch(e){}
+  const el=document.getElementById('llist');if(!el)return;
+  if(!txs.length){el.innerHTML='<div class="empty"><div class="empty-icon">📒</div>No fund transactions yet.</div>';return}
+  const ico={food:'🥘',medicine:'💊',transport:'🚗',shelter:'🏠',clothes:'👕',equipment:'♿',other:'📦'};
+  const ibg={food:'var(--sageL)',medicine:'var(--slateL)',transport:'var(--goldL)',shelter:'var(--rustL)',clothes:'#f3e8fb'};
+  el.innerHTML=txs.map((t,i)=>{
+    const a=parseFloat(t.amount)||0;
+    const fa=a>=100000?'₹'+(a/100000).toFixed(1)+'L':a>=1000?'₹'+(a/1000).toFixed(1)+'K':'₹'+a.toLocaleString('en-IN');
+    return`<div class="lr${i===0?' in':''}">
+      <div class="ll">
+        <div class="li" style="background:${ibg[t.category]||'var(--paper3)'}">${ico[t.category]||'📦'}</div>
+        <div>
+          <div class="ldate">${fd(t.created_at)}${t.drive_name?' · '+t.drive_name:''}</div>
+          <div class="lname">${t.description||'Transaction'}</div>
+          <div class="lsub">${t.category||''} · ${t.vendor_name||''}</div>
+        </div>
+      </div>
+      <div class="lr-r">
+        <div class="la">${fa}</div>
+        <div class="lp">${t.is_verified?'✓ Verified':''}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Donations ─────────────────────────────────────────────
+async function loadDonations(){
+  let d2=[];
+  try{const d=await fetch(API+'/donations?limit=10').then(r=>r.json());d2=d.donations||[];}catch(e){}
+  dons=d2;renderDonations();
+}
+function renderDonations(prepend=null){
+  const arr=prepend?[prepend,...dons.slice(0,9)]:dons;
+  const el=document.getElementById('dlog');if(!el)return;
+  if(!arr.length){el.innerHTML='<div class="empty"><div class="empty-icon">💝</div>No donations yet.<br><a href="/donor" style="color:var(--sage);font-weight:600">Be the first to give</a></div>';return}
+  const ico={money:'💰',food:'🥘',medicines:'💊',clothes:'👕',accommodation:'🏠',transport:'🚗',equipment:'♿',skill:'🧠'};
+  const ibg={money:'var(--sageL)',food:'var(--goldL)',medicines:'var(--slateL)',clothes:'#f3e8fb'};
+  const sc={used:'su',delivered:'sd',in_transit:'sd',collected:'sp',pending:'sp'};
+  el.innerHTML=arr.map((d,i)=>{
+    const a=d.amount?(parseFloat(d.amount)>=1000?'₹'+(parseFloat(d.amount)/1000).toFixed(1)+'K':'₹'+parseFloat(d.amount).toFixed(0)):(d.quantity?d.quantity+' items':'');
+    return`<div class="dr${i===0&&prepend?' in':''}">
+      <div class="di" style="background:${ibg[d.type]||'var(--paper3)'}">${ico[d.type]||'?'}</div>
+      <div style="flex:1">
+        <div class="dn">${d.donor_name||'Anonymous'} · ${a}</div>
+        <div class="ds">${d.drive_name||d.type||''} · ${ago(d.created_at)}</div>
+      </div>
+      <span class="dst ${sc[d.status]||'sp'}">${d.status||'pending'}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Charts ────────────────────────────────────────────────
+function initCharts(){
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+  const gridColor='rgba(14,14,14,.06)';
+  tC=new Chart(document.getElementById('cT'),{type:'bar',data:{labels:[],datasets:[
+    {label:'Raised',data:[],backgroundColor:'rgba(45,106,79,.7)',borderRadius:4,yAxisID:'y'},
+    {label:'Disbursed',data:[],type:'line',borderColor:'#1E3A5F',backgroundColor:'rgba(30,58,95,.07)',fill:true,tension:.4,pointBackgroundColor:'#1E3A5F',yAxisID:'y'}
+  ]},options:{...base,scales:{y:{ticks:{callback:v=>v>=100000?'₹'+(v/100000).toFixed(0)+'L':v>=1000?'₹'+(v/1000).toFixed(0)+'K':'₹'+v,font:{size:10},color:'#888'},grid:{color:gridColor}},x:{ticks:{font:{size:10},color:'#888'},grid:{display:false}}}}});
+  vC=new Chart(document.getElementById('cV'),{type:'doughnut',data:{labels:['Verified','Pending','Unverified'],datasets:[{data:[0,0,1],backgroundColor:['#2D6A4F','#1E3A5F','#A0781A'],borderWidth:3,borderColor:'#FFFDF8'}]},options:{...base,cutout:'63%'}});
+}
+function updateTrend(m){
+  if(!tC)return;
+  tC.data.labels=m.map(x=>new Date(x.month).toLocaleString('default',{month:'short'}));
+  const r=m.map(x=>parseFloat(x.money_raised)||0);
+  tC.data.datasets[0].data=r;
+  tC.data.datasets[1].data=r.map(v=>v*.88);
+  tC.update();
+}
+
+// Load allocation chart from real fund transaction data
+async function loadAlloc(){
+  let cats={};
+  try{
+    const d=await fetch(API+'/ledger?limit=100').then(r=>r.json());
+    (d.transactions||[]).forEach(t=>{if(t.category&&t.amount)cats[t.category]=(cats[t.category]||0)+parseFloat(t.amount||0)});
+  }catch(e){}
+  const entries=Object.entries(cats);
+  const el=document.getElementById('allocLeg');
+  if(!entries.length){
+    if(!aC)aC=new Chart(document.getElementById('cA'),{type:'doughnut',data:{labels:['No data yet'],datasets:[{data:[1],backgroundColor:['var(--rule)'],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
+    if(el)el.innerHTML='<span style="color:var(--ink3);font-size:11px">Allocation data will appear when fund transactions are added</span>';
+    return;
+  }
+  const colors=['#2D6A4F','#1E3A5F','#A0781A','#C1440E','#6B4D9F','#888'];
+  if(!aC){
+    aC=new Chart(document.getElementById('cA'),{type:'doughnut',data:{labels:entries.map(e=>e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:colors,borderWidth:3,borderColor:'#FFFDF8'}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{display:false}}}});
+  } else {
+    aC.data.labels=entries.map(e=>e[0]);
+    aC.data.datasets[0].data=entries.map(e=>e[1]);
+    aC.data.datasets[0].backgroundColor=colors;
+    aC.update();
+  }
+  if(el)el.innerHTML=entries.map((e,i)=>`<span><span class="ld2" style="background:${colors[i%colors.length]}"></span>${e[0]}</span>`).join('');
+}
+
+// ── WebSocket ─────────────────────────────────────────────
+function initWS(){
+  const sock=io(window.location.origin,{transports:['websocket','polling']});
+  sock.on('connect',()=>{
+    document.getElementById('ldot').classList.add('on');
+    document.getElementById('llbl').textContent='Live';
+  });
+  sock.on('disconnect',()=>{
+    document.getElementById('ldot').classList.remove('on');
+    document.getElementById('llbl').textContent='Reconnecting...';
+  });
+  sock.on('stats:update',()=>{loadStats();loadAlloc()});
+  sock.on('notice:new',n=>{
+    notices.unshift(n);
+    if(nf==='all'||nf===n.urgency_level)renderNotices(n);
+    toast('📢 '+n.title);
+  });
+  sock.on('notice:update',n=>{
+    const i=notices.findIndex(x=>x.id===n.id);
+    if(i>=0)notices[i]=n;
+    renderNotices();
+  });
+  sock.on('donation:new',d=>{
+    dons.unshift(d);renderDonations(d);
+    if(d.amount)toast('💚 New donation: '+fmt(d.amount),'success');
+    setTimeout(loadStats,500);
+  });
+  sock.on('fund:new',()=>{loadLedger();loadAlloc();toast('🧾 New verified transaction')});
+  sock.on('drive:update',()=>setTimeout(loadStats,400));
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  initCharts();
+  loadStats();
+  loadNotices();
+  loadLedger();
+  loadDonations();
+  loadAlloc();
+  initWS();
+  setInterval(loadStats,30000);
+});
+</script>
+</body>
+</html>

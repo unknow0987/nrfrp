@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NRFRP — Get Help</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#F7F5F2;--bg2:#FFFFFE;--bg3:#EFF0EE;--ink:#111;--ink2:#444;--ink3:#888;--rule:#DADAD8;--ruleL:#EAEAE8;
+  --red:#B02020;--rL:rgba(176,32,32,.08);--amber:#7A5000;--aL:rgba(122,80,0,.08);--green:#1A5C30;--gL:rgba(26,92,48,.08);--blue:#0D3D8F;--bL:rgba(13,61,143,.08);
+  --r:8px;--rL2:13px;--font:'IBM Plex Sans',sans-serif;--serif:'IBM Plex Serif',serif;--tr:.18s ease}
+body{font-family:var(--font);background:var(--bg);color:var(--ink);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased}
+header{background:var(--bg2);border-bottom:1px solid var(--rule);padding:0 24px;height:54px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;box-shadow:0 1px 8px rgba(0,0,0,.06)}
+.logo{display:flex;align-items:center;gap:9px;text-decoration:none;color:var(--ink)}
+.lm{width:28px;height:28px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center}
+.lm svg{width:14px;height:14px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.lt{font-family:var(--serif);font-size:16px;font-weight:600}
+.content{max-width:680px;margin:0 auto;padding:28px 18px;flex:1}
+.hero{text-align:center;padding:36px 16px 28px}
+.hero h1{font-family:var(--serif);font-size:clamp(28px,5vw,38px);font-weight:600;margin-bottom:8px;line-height:1.15}
+.hero h1 em{font-style:italic;color:var(--red)}
+.hero p{font-size:14px;color:var(--ink3);line-height:1.65;max-width:440px;margin:0 auto}
+/* STEPS BAR */
+.steps-bar{display:flex;background:var(--bg2);border:1px solid var(--rule);border-radius:var(--r);overflow:hidden;margin-bottom:24px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.step-btn{flex:1;padding:10px 6px;text-align:center;font-size:10px;color:var(--ink3);cursor:pointer;border-right:1px solid var(--rule);transition:var(--tr);display:flex;flex-direction:column;align-items:center;gap:3px;font-weight:500}
+.step-btn:last-child{border-right:none}
+.step-btn.done{background:var(--gL);color:var(--green)}
+.step-btn.cur{background:var(--aL);color:var(--amber)}
+.step-num{width:20px;height:20px;border-radius:50%;background:var(--rule);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600}
+.step-btn.done .step-num{background:var(--green);color:#fff}
+.step-btn.cur .step-num{background:var(--amber);color:#fff}
+/* PANEL */
+.panel{background:var(--bg2);border:1px solid var(--rule);border-radius:var(--rL2);overflow:hidden;margin-bottom:16px;box-shadow:0 1px 8px rgba(0,0,0,.05)}
+.ph{padding:15px 18px 12px;border-bottom:1px solid var(--rule)}
+.pt{font-family:var(--serif);font-size:16px;font-weight:600}
+.ps{font-size:12px;color:var(--ink3);margin-top:2px}
+.pb{padding:16px 18px}
+/* FORMS */
+.fr{margin-bottom:14px}.fl{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--rule);border-radius:8px;padding:10px 13px;color:var(--ink);font-size:14px;font-family:var(--font);outline:none;transition:var(--tr)}
+.fi:focus{border-color:var(--red);background:var(--bg2)}.fi::placeholder{color:var(--ink3)}
+.fi-ta{resize:vertical;min-height:80px}
+.fi-sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;cursor:pointer}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.fhint{font-size:11px;color:var(--ink3);margin-top:4px;line-height:1.5}
+/* CHOICE CARDS */
+.cg2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.cg4{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.cc{background:var(--bg3);border:1px solid var(--rule);border-radius:var(--r);padding:13px;cursor:pointer;transition:var(--tr)}
+.cc:hover,.cc.on{border-color:var(--red);background:var(--rL)}
+.cc-ic{font-size:20px;margin-bottom:7px}
+.cc-n{font-size:13px;font-weight:600;margin-bottom:3px}
+.cc-s{font-size:11px;color:var(--ink3);line-height:1.4}
+/* CHIP SELECTS */
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.chip{background:var(--bg3);border:1px solid var(--rule);border-radius:20px;padding:5px 13px;font-size:12px;cursor:pointer;transition:var(--tr);font-weight:500;font-family:var(--font)}
+.chip:hover,.chip.on{background:var(--rL);border-color:var(--red);color:var(--red)}
+/* BUTTONS */
+.btn-p{width:100%;background:var(--red);color:#fff;font-size:14px;font-weight:600;padding:12px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);transition:var(--tr)}
+.btn-p:hover{background:#921818}
+.btn-g{background:transparent;border:1px solid var(--rule);color:var(--ink2);font-size:13px;padding:9px 18px;border-radius:8px;cursor:pointer;font-family:var(--font)}
+.btn-row{display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:10px}
+/* STATUS CARD */
+.status-card{text-align:center;padding:32px 20px}
+.sc-icon{font-size:44px;margin-bottom:14px}
+.sc-title{font-family:var(--serif);font-size:22px;font-weight:600;margin-bottom:8px}
+.sc-desc{font-size:13px;color:var(--ink3);line-height:1.65;margin-bottom:18px}
+.steps-progress{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;max-width:400px;margin:0 auto 20px}
+.sp-item{text-align:center}
+.sp-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;margin:0 auto 4px}
+.sp-lbl{font-size:9px;color:var(--ink3);font-weight:500;text-transform:uppercase;letter-spacing:.04em}
+.badge{font-size:11px;font-weight:600;padding:3px 10px;border-radius:5px;display:inline-block;margin:8px 0}
+.b-crit{background:var(--rL);color:var(--red)}.b-high{background:var(--aL);color:var(--amber)}.b-norm{background:var(--gL);color:var(--green)}
+/* AUTH */
+#auth{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:20px}
+.auth-box{background:var(--bg2);border:1px solid var(--rule);border-radius:var(--rL2);padding:28px;width:360px;max-width:100%;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+.warn-box{background:var(--aL);border:1px solid rgba(122,80,0,.15);border-radius:9px;padding:12px 14px;font-size:12px;color:var(--amber);line-height:1.55;margin-bottom:14px}
+#toasts{position:fixed;top:64px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{background:var(--ink);color:#fff;padding:10px 14px;border-radius:8px;font-size:13px;max-width:280px;opacity:0;transform:translateX(14px);transition:all .3s}
+.toast.show{opacity:1;transform:translateX(0)}.toast.success{background:var(--green)}
+.empty{text-align:center;padding:24px;color:var(--ink3);font-size:13px;line-height:1.7}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+<div id="auth">
+  <div class="auth-box">
+    <div style="text-align:center;margin-bottom:20px">
+      <div class="lm" style="width:36px;height:36px;border-radius:9px;margin:0 auto 10px"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div style="font-family:var(--serif);font-size:19px;font-weight:600;margin-bottom:4px">Register for help</div>
+      <div style="font-size:12px;color:var(--ink3)">Your identity is protected. All data encrypted.</div>
+    </div>
+    <div class="fr"><label class="fl">Full name *</label><input class="fi" id="aName" type="text" placeholder="Your full name"></div>
+    <div class="fr"><label class="fl">Phone number *</label><input class="fi" id="aPhone" type="tel" placeholder="+91 79932 32478"><div class="fhint">SHA-256 hash stored only. Raw number never saved.</div></div>
+    <div id="aOtpRow" style="display:none"><div class="fr"><label class="fl">OTP (dev: 123456)</label><input class="fi" id="aOtp" type="text" maxlength="6" placeholder="6-digit OTP"></div></div>
+    <div id="aBtnRow"><button class="btn-p" style="margin-top:4px" onclick="authReq()">Continue</button></div>
+    <div style="font-size:11px;color:var(--ink3);text-align:center;margin-top:11px">Dev OTP is always <strong style="color:var(--green)">123456</strong></div>
+  </div>
+</div>
+<header>
+  <a class="logo" href="/public"><div class="lm"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><span class="lt">NRFRP</span></a>
+  <div style="display:flex;gap:8px;align-items:center">
+    <a href="/public" style="font-size:12px;color:var(--ink3);text-decoration:none;font-weight:500">Public dashboard</a>
+    <button style="background:transparent;border:1px solid var(--rule);color:var(--ink3);font-size:12px;padding:5px 11px;border-radius:6px;cursor:pointer;font-family:var(--font)" id="logoutBtn" onclick="logout()" style="display:none">Logout</button>
+  </div>
+</header>
+
+<div id="mainContent" style="display:none">
+  <div class="hero">
+    <h1>Register your<br><em>need</em></h1>
+    <p>Strict 6-step verification: digital + physical volunteer visit. Emergency cases approved same day. All data private and protected.</p>
+  </div>
+
+  <!-- EXISTING CASE STATUS (shown if case exists) -->
+  <div id="existingCaseDiv" style="display:none;max-width:680px;margin:0 auto;padding:0 18px 20px">
+    <div class="panel"><div class="status-card" id="existingCaseContent"></div></div>
+    <button class="btn-p" style="max-width:300px;display:block;margin:0 auto" onclick="document.getElementById('existingCaseDiv').style.display='none';document.getElementById('regForm').style.display='block'">Register new case</button>
+  </div>
+
+  <!-- REG FORM -->
+  <div class="content" id="regForm">
+    <div class="steps-bar" id="stepsBar">
+      <div class="step-btn cur" id="st0"><div class="step-num">1</div>Type</div>
+      <div class="step-btn" id="st1"><div class="step-num">2</div>Details</div>
+      <div class="step-btn" id="st2"><div class="step-num">3</div>Location</div>
+      <div class="step-btn" id="st3"><div class="step-num">4</div>Help</div>
+      <div class="step-btn" id="st4"><div class="step-num">5</div>Review</div>
+    </div>
+    <div id="formContainer"></div>
+  </div>
+</div>
+
+<script>
+// In your HTML script tags:
+const API = 'http://localhost:4000/api';
+let token=localStorage.getItem('nrfrp_needy_token');
+let step=0,caseData={type:'individual_general',regType:'individual'};
+const STEPS=['Type','Details','Location','Help','Review'];
+
+async function authReq(){
+  const name=document.getElementById('aName').value.trim();
+  const ph=document.getElementById('aPhone').value.trim();
+  if(!name||!ph){toast('Fill all fields');return}
+  const r=await fetch(API+'/auth/otp/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  if(r.success){
+    document.getElementById('aOtpRow').style.display='block';
+    document.getElementById('aBtnRow').innerHTML='<button class="btn-p" style="margin-top:4px" onclick="authVerify()">Verify OTP</button>';
+    toast('OTP sent! Dev: 123456');
+  } else toast(r.error||'Failed');
+}
+async function authVerify(){
+  const ph=document.getElementById('aPhone').value.trim();
+  const otp=document.getElementById('aOtp').value.trim();
+  if(otp.length!==6){toast('Enter 6-digit OTP');return}
+  const r=await fetch(API+'/auth/otp/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,otp,role:'needy'})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  if(r.token){
+    token=r.token;localStorage.setItem('nrfrp_needy_token',token);
+    document.getElementById('auth').style.display='none';
+    document.getElementById('mainContent').style.display='block';
+    document.getElementById('logoutBtn').style.display='block';
+    loadExistingCase();initWS();renderStep(0);
+  } else toast(r.error||'Login failed');
+}
+function logout(){localStorage.removeItem('nrfrp_needy_token');location.reload()}
+
+const H=()=>({'Content-Type':'application/json','Authorization':'Bearer '+token});
+function toast(msg,type=''){const c=document.getElementById('toasts');const t=document.createElement('div');t.className='toast '+(type||'');t.textContent=msg;c.appendChild(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300)},4500)}
+
+async function loadExistingCase(){
+  try{
+    const d=await fetch(API+'/needy/my-case',{headers:H()}).then(r=>r.json());
+    if(d.case){
+      const c=d.case;
+      const ub={critical:'b-crit',high:'b-high',normal:'b-norm'};
+      const stepDone=(s)=>{const done=['active','verified','closed'].includes(s);const order=['pending','step2','step3','step4','step5','active'];const idx=order.indexOf(s);return {done,idx:Math.max(0,idx)}};
+      const sd=stepDone(c.status);
+      const steps=['Phone OTP','ID Upload','Evidence','GPS','Vol. Visit','Approved'];
+      document.getElementById('existingCaseContent').innerHTML=`
+        <div class="sc-icon">${c.status==='active'?'✅':c.status==='closed'?'🔒':'⏳'}</div>
+        <div class="sc-title">Your case: ${c.status.toUpperCase().replace('_',' ')}</div>
+        <span class="badge ${ub[c.urgency]||'b-norm'}">${c.urgency.toUpperCase()}</span>
+        <div class="sc-desc">${c.description||''}<br><br>District: ${c.district||'—'}, ${c.state||'—'} · Family: ${c.family_size||1}</div>
+        <div class="steps-progress">
+          ${steps.map((s,i)=>`<div class="sp-item"><div class="sp-dot" style="background:${i<=sd.idx?'var(--green)':i===sd.idx+1?'var(--amber)':'var(--rule)'};color:${i<=sd.idx||i===sd.idx+1?'#fff':'var(--ink3)'}">${i<=sd.idx?'✓':i+1}</div><div class="sp-lbl">${s}</div></div>`).join('')}
+        </div>
+        ${c.status==='active'?'<div style="background:var(--gL);color:var(--green);font-size:12px;padding:10px 14px;border-radius:7px">Your case is active and visible to donors and volunteers.</div>':''}
+      `;
+      document.getElementById('existingCaseDiv').style.display='block';
+      document.getElementById('regForm').style.display='none';
+    } else {
+      renderStep(0);
+    }
+  }catch(e){renderStep(0)}
+}
+
+function renderStep(n){
+  step=n;
+  for(let i=0;i<5;i++){const el=document.getElementById('st'+i);if(el)el.className='step-btn '+(i<n?'done':i===n?'cur':'')}
+  const cont=document.getElementById('formContainer');if(!cont)return;
+  if(n===0) cont.innerHTML=`<div class="panel">
+    <div class="ph"><div class="pt">Who are you?</div><div class="ps">Select the type that best describes your situation</div></div>
+    <div class="pb">
+      <div class="fr"><label class="fl">Registration type</label>
+        <div class="cg2">
+          <div class="cc on" id="rt-ind" onclick="selRT('individual',this)"><div class="cc-ic">👤</div><div class="cc-n">Individual / Family</div><div class="cc-s">You or a family member needs help</div></div>
+          <div class="cc" id="rt-org" onclick="selRT('organisation',this)"><div class="cc-ic">🏛️</div><div class="cc-n">Organisation</div><div class="cc-s">Orphanage, shelter, NGO running programmes</div></div>
+        </div>
+      </div>
+      <div class="fr"><label class="fl">Situation type</label>
+        <div class="cg2">
+          <div class="cc on" id="nt-gen" onclick="selNT('individual_general',this)"><div class="cc-ic">📋</div><div class="cc-n">General</div><div class="cc-s">Unemployed, homeless, disaster victim</div></div>
+          <div class="cc" id="nt-med" onclick="selNT('individual_medical',this)"><div class="cc-ic">🏥</div><div class="cc-n">Medical</div><div class="cc-s">Cannot afford treatment or medicines</div></div>
+          <div class="cc" id="nt-emg" onclick="selNT('individual_emergency',this)"><div class="cc-ic">🆘</div><div class="cc-n">Emergency</div><div class="cc-s">Fast-track · same day approval for genuine crisis</div></div>
+          <div class="cc" id="nt-org" onclick="selNT('organisation',this)"><div class="cc-ic">🏠</div><div class="cc-n">Organisation</div><div class="cc-s">Orphanage, old-age home, slum school, NGO</div></div>
+        </div>
+      </div>
+      <div class="btn-row"><div></div><button class="btn-p" style="width:auto;padding:10px 24px" onclick="nextStep(0)">Next →</button></div>
+    </div>
+  </div>`;
+
+  else if(n===1) cont.innerHTML=`<div class="panel">
+    <div class="ph"><div class="pt">Describe your situation</div><div class="ps">Be honest. All information is private and verified.</div></div>
+    <div class="pb">
+      <div class="fr"><label class="fl">Describe your situation *</label><textarea class="fi fi-ta" id="desc" placeholder="Explain what help you need and why. Include relevant details like how long this situation has been going on, what you've tried..."></textarea></div>
+      <div class="fr2">
+        <div><label class="fl">Family / beneficiary size</label><input class="fi" id="famSize" type="number" value="1" min="1" max="100" placeholder="Number of people"></div>
+        <div><label class="fl">Urgency level</label><select class="fi fi-sel" id="urgency"><option value="normal">Normal</option><option value="high">High — needed soon</option><option value="critical">Critical — immediate crisis</option></select></div>
+      </div>
+      <div id="orgFields" style="display:none">
+        <div class="fr"><label class="fl">Organisation name</label><input class="fi" id="orgName" placeholder="Name of your organisation"></div>
+        <div class="fr"><label class="fl">Registration / NGO number</label><input class="fi" id="regNum" placeholder="Registration certificate number"></div>
+      </div>
+      <div class="btn-row"><button class="btn-g" onclick="renderStep(0)">← Back</button><button class="btn-p" style="width:auto;padding:10px 24px" onclick="nextStep(1)">Next →</button></div>
+    </div>
+  </div>`;
+
+  else if(n===2) cont.innerHTML=`<div class="panel">
+    <div class="ph"><div class="pt">Your location</div><div class="ps">GPS is compared against your ID document address. >50km = flagged for review.</div></div>
+    <div class="pb">
+      <div class="fr2">
+        <div><label class="fl">District / city *</label><input class="fi" id="district" placeholder="e.g. South Delhi"></div>
+        <div><label class="fl">State *</label><input class="fi" id="state" placeholder="e.g. Delhi"></div>
+      </div>
+      <div class="fr">
+        <label class="fl">GPS coordinates</label>
+        <div class="fr2" style="margin-bottom:6px">
+          <input class="fi" id="lat" placeholder="Latitude" readonly>
+          <input class="fi" id="lng" placeholder="Longitude" readonly>
+        </div>
+        <button style="font-size:12px;padding:7px 16px;background:var(--rL);color:var(--red);border:1px solid rgba(176,32,32,.2);border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600" onclick="captureGPS()">📍 Capture my location</button>
+        <div class="fhint">Your GPS location is stored encrypted and only used to match you with nearby volunteers and verify your ID address.</div>
+      </div>
+      <div class="btn-row"><button class="btn-g" onclick="renderStep(1)">← Back</button><button class="btn-p" style="width:auto;padding:10px 24px" onclick="nextStep(2)">Next →</button></div>
+    </div>
+  </div>`;
+
+  else if(n===3) cont.innerHTML=`<div class="panel">
+    <div class="ph"><div class="pt">What help do you need?</div><div class="ps">Select all that apply</div></div>
+    <div class="pb">
+      <div class="chips">
+        <span class="chip" onclick="this.classList.toggle('on')" data-t="food">🥘 Food</span>
+        <span class="chip" onclick="this.classList.toggle('on')" data-t="medical">💊 Medical</span>
+        <span class="chip" onclick="this.classList.toggle('on')" data-t="shelter">🏠 Shelter</span>
+        <span class="chip" onclick="this.classList.toggle('on')" data-t="clothes">👕 Clothes</span>
+        <span class="chip" onclick="this.classList.toggle('on')" data-t="funds">₹ Financial aid</span>
+        <span class="chip" onclick="this.classList.toggle('on')" data-t="transport">🚗 Transport</span>
+        <span class="chip" onclick="this.classList.toggle('on')" data-t="education">📚 Education</span>
+        <span class="chip" onclick="this.classList.toggle('on')" data-t="legal">⚖️ Legal aid</span>
+      </div>
+      <div class="fr">
+        <label class="fl">Identity document (Aadhaar / Voter ID / Passport) *</label>
+        <input class="fi" type="file" accept="image/*,.pdf" id="idDoc">
+        <div class="fhint">Uploaded to a private S3 bucket. Admin views with a 15-minute expiring link. Document is never public.</div>
+      </div>
+      <div class="fr">
+        <label class="fl">Evidence (hospital estimate / prescription / photo) — optional for general</label>
+        <input class="fi" type="file" accept="image/*,.pdf" id="evidence" multiple>
+        <div class="fhint">Medical cases: hospital estimate or prescription required. Disaster cases: location photo.</div>
+      </div>
+      <div class="btn-row"><button class="btn-g" onclick="renderStep(2)">← Back</button><button class="btn-p" style="width:auto;padding:10px 24px" onclick="nextStep(3)">Review →</button></div>
+    </div>
+  </div>`;
+
+  else if(n===4) {
+    const helps=Array.from(document.querySelectorAll('.chip.on')).map(c=>c.dataset.t);
+    cont.innerHTML=`<div class="panel">
+      <div class="ph"><div class="pt">Review & submit</div></div>
+      <div class="pb">
+        <div style="background:var(--bg3);border-radius:8px;padding:14px;margin-bottom:14px;font-size:13px;line-height:2;color:var(--ink2)" id="reviewSummary">
+          <strong style="color:var(--ink)">Type:</strong> ${caseData.type?.replace(/_/g,' ')}<br>
+          <strong style="color:var(--ink)">Registration:</strong> ${caseData.regType}<br>
+          <strong style="color:var(--ink)">Description:</strong> ${document.getElementById('desc')?.value||'—'}<br>
+          <strong style="color:var(--ink)">Family size:</strong> ${document.getElementById('famSize')?.value||1}<br>
+          <strong style="color:var(--ink)">Urgency:</strong> ${document.getElementById('urgency')?.value||'normal'}<br>
+          <strong style="color:var(--ink)">Location:</strong> ${document.getElementById('district')?.value||'—'}, ${document.getElementById('state')?.value||'—'}<br>
+          <strong style="color:var(--ink)">Help needed:</strong> ${helps.join(', ')||'—'}
+        </div>
+        <div class="warn-box">⚠ After submission: A local verified volunteer will visit your registered address within 24–48 hours. They will photograph the situation and submit a field report. Please be available and cooperative. Your case goes live only after admin approval.</div>
+        <div class="btn-row"><button class="btn-g" onclick="renderStep(3)">← Back</button><button class="btn-p" style="width:auto;padding:11px 28px" onclick="submitCase()">Submit request →</button></div>
+      </div>
+    </div>`;
+  }
+}
+
+function selRT(type,el){caseData.regType=type;document.querySelectorAll('[id^="rt-"]').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+function selNT(type,el){caseData.type=type;document.querySelectorAll('[id^="nt-"]').forEach(c=>c.classList.remove('on'));el.classList.add('on');document.getElementById('orgFields')&&(document.getElementById('orgFields').style.display=type==='organisation'?'block':'none')}
+function nextStep(n){
+  if(n===1){const d=document.getElementById('desc')?.value?.trim();if(!d){toast('Describe your situation');return}}
+  if(n===2){const dist=document.getElementById('district')?.value?.trim(),st=document.getElementById('state')?.value?.trim();if(!dist||!st){toast('Enter district and state');return}}
+  if(n===3){const h=Array.from(document.querySelectorAll('.chip.on'));if(!h.length){toast('Select at least one type of help needed');return}}
+  renderStep(n+1);
+}
+function captureGPS(){
+  if(!navigator.geolocation){toast('GPS not available');return}
+  navigator.geolocation.getCurrentPosition(p=>{
+    document.getElementById('lat').value=p.coords.latitude.toFixed(6);
+    document.getElementById('lng').value=p.coords.longitude.toFixed(6);
+    toast('Location captured','success');
+  },()=>toast('Could not get location'));
+}
+async function submitCase(){
+  const helps=Array.from(document.querySelectorAll('.chip.on')).map(c=>c.dataset.t);
+  const body={type:caseData.type,urgency:document.getElementById('urgency')?.value||'normal',help_types:helps,family_size:parseInt(document.getElementById('famSize')?.value)||1,description:document.getElementById('desc')?.value||'',district:document.getElementById('district')?.value||'',state:document.getElementById('state')?.value||'',lat:parseFloat(document.getElementById('lat')?.value)||null,lng:parseFloat(document.getElementById('lng')?.value)||null};
+  const r=await fetch(API+'/needy/register',{method:'POST',headers:H(),body:JSON.stringify(body)}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  if(r.case){
+    toast('Case submitted! A volunteer will visit within 48 hours.','success');
+    setTimeout(()=>{loadExistingCase()},1200);
+  } else toast(r.error||'Submission failed');
+}
+
+function initWS(){
+  const sock=io(window.location.origin,{auth:{token},transports:['websocket','polling']});
+  sock.on('case:update',d=>{if(d.type==='approved')loadExistingCase()});
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  if(token){
+    document.getElementById('auth').style.display='none';
+    document.getElementById('mainContent').style.display='block';
+    document.getElementById('logoutBtn').style.display='block';
+    loadExistingCase();initWS();
+  }
+  document.getElementById('aOtp')?.addEventListener('keydown',e=>{if(e.key==='Enter')authVerify()});
+  document.getElementById('aPhone')?.addEventListener('keydown',e=>{if(e.key==='Enter')authReq()});
+});
+</script>
+</body>
+</html>

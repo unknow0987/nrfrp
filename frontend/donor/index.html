@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NRFRP — Donor Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400&family=Karla:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--ink:#0E0C09;--ink2:#4A4540;--ink3:#8A8480;--pap:#FEFCF8;--pap2:#F6F2EC;--pap3:#EDE8DE;--rule:#D4CFC6;--ruleL:#E4DFD8;
+  --forest:#1B5E36;--fL:rgba(27,94,54,.1);--fM:rgba(27,94,54,.08);
+  --clay:#8B3A1C;--cL:rgba(139,58,28,.09);
+  --ink-blue:#1A3250;--bL:rgba(26,50,80,.09);
+  --gold:#7A5C1E;--gL:rgba(122,92,30,.09);
+  --r:9px;--rL:15px;--font:'Karla',sans-serif;--serif:'Cormorant Garamond',serif;--tr:.18s ease;--sh:0 2px 14px rgba(14,12,9,.08)}
+body{font-family:var(--font);background:var(--pap);color:var(--ink);min-height:100vh;font-size:15px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--pap2)}::-webkit-scrollbar-thumb{background:var(--rule)}
+#app{display:none;min-height:100vh}#app.vis{display:flex}
+/* SIDEBAR */
+#sb{width:230px;background:var(--ink);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:50;overflow-y:auto}
+#main{margin-left:230px;flex:1}
+.sb-brand{padding:18px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:10px}
+.sb-lm{width:32px;height:32px;background:var(--forest);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.sb-lm svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sb-n{font-family:var(--serif);font-size:15px;font-weight:700;color:rgba(255,255,255,.9)}.sb-s{font-size:11px;color:rgba(255,255,255,.4)}
+.sb-sec{font-size:10px;font-weight:600;color:rgba(255,255,255,.3);padding:14px 16px 4px;letter-spacing:.1em;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:9px;padding:9px 16px;cursor:pointer;font-size:13px;color:rgba(255,255,255,.55);border-left:2px solid transparent;transition:var(--tr)}
+.sb-item:hover{background:rgba(255,255,255,.05);color:rgba(255,255,255,.85)}
+.sb-item.on{background:var(--fM);color:#6FCF97;border-left-color:#6FCF97;font-weight:500}
+.sb-item svg{width:14px;height:14px;flex-shrink:0}
+.sb-foot{padding:14px 16px;border-top:1px solid rgba(255,255,255,.08);margin-top:auto}
+/* HERO SLIDER */
+.slider-wrap{position:relative;height:320px;overflow:hidden}
+.slides{display:flex;height:100%;transition:transform .65s cubic-bezier(.4,0,.2,1)}
+.slide{min-width:100%;height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;position:relative;overflow:hidden;padding:0 40px;text-align:center}
+.s1{background:linear-gradient(160deg,#071A0F,#0D2A18,#050E08)}
+.s2{background:linear-gradient(160deg,#0A1520,#102232,#060D16)}
+.s3{background:linear-gradient(160deg,#1A0E06,#2A180A,#0E0704)}
+.slide::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,.03) 1px,transparent 1px);background-size:28px 28px;pointer-events:none}
+.slide-badge{display:inline-block;background:rgba(111,207,151,.15);border:1px solid rgba(111,207,151,.25);color:#6FCF97;font-size:10px;font-weight:600;padding:3px 11px;border-radius:20px;margin-bottom:14px;text-transform:uppercase;letter-spacing:.08em;position:relative}
+.slide h2{font-family:var(--serif);font-size:clamp(28px,4vw,42px);color:#FEFCF8;line-height:1.12;margin-bottom:10px;position:relative}
+.slide h2 em{font-style:italic;color:#6FCF97}
+.slide p{font-size:14px;color:rgba(254,252,248,.5);max-width:420px;margin:0 auto 22px;line-height:1.65;position:relative}
+.slide-btn{background:var(--forest);color:#fff;font-size:13px;font-weight:600;padding:9px 22px;border-radius:8px;border:none;cursor:pointer;font-family:var(--font);transition:var(--tr)}
+.slide-btn:hover{background:#1B7A3F}
+.dots{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:10}
+.dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.25);cursor:pointer;transition:all .2s}
+.dot.on{background:#6FCF97;width:20px;border-radius:3px}
+.snav{position:absolute;top:50%;transform:translateY(-50%);z-index:10}
+.sprev{left:14px}.snext{right:14px}
+.snbtn{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.14);color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--tr)}
+.snbtn:hover{background:rgba(255,255,255,.18)}
+/* TOPBAR */
+.topbar{background:var(--pap);border-bottom:1px solid var(--rule);padding:0 22px;height:50px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:40;box-shadow:var(--sh)}
+.tb-t{font-family:var(--serif);font-size:16px;font-weight:700}
+/* CONTENT */
+.content{padding:20px 22px}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
+.sc{background:var(--pap);border:1px solid var(--rule);border-radius:var(--r);padding:13px 15px;box-shadow:var(--sh)}
+.sc-l{font-size:11px;color:var(--ink3);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em}
+.sc-v{font-family:var(--serif);font-size:22px;font-weight:700;line-height:1}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:18px}
+.panel{background:var(--pap);border:1px solid var(--rule);border-radius:var(--rL);overflow:hidden;box-shadow:var(--sh)}
+.ph{padding:13px 16px 10px;border-bottom:1px solid var(--rule);display:flex;align-items:center;justify-content:space-between}
+.pt{font-family:var(--serif);font-size:15px;font-weight:700}
+.pa{font-size:12px;color:var(--forest);font-weight:600;cursor:pointer;text-decoration:none}
+.pb{padding:13px 16px}
+/* TYPE CARDS */
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:16px}
+.tc{background:var(--pap2);border:1px solid var(--rule);border-radius:var(--r);padding:13px;cursor:pointer;transition:var(--tr);text-align:center}
+.tc:hover,.tc.on{border-color:var(--forest);background:var(--fL)}
+.tc-ic{font-size:20px;margin-bottom:7px}
+.tc-n{font-size:12px;font-weight:600;margin-bottom:2px}
+.tc-s{font-size:11px;color:var(--ink3);line-height:1.4}
+/* FORM */
+.fr{margin-bottom:13px}.fl{font-size:12px;font-weight:600;color:var(--ink2);margin-bottom:5px;display:block;text-transform:uppercase;letter-spacing:.04em}
+.fi{width:100%;background:var(--pap2);border:1px solid var(--rule);border-radius:8px;padding:9px 12px;color:var(--ink);font-size:14px;font-family:var(--font);outline:none;transition:var(--tr)}
+.fi:focus{border-color:var(--forest)}.fi::placeholder{color:var(--ink3)}
+.agrid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:8px}
+.abtn{background:var(--pap2);border:1px solid var(--rule);border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;transition:var(--tr);font-family:var(--font)}
+.abtn:hover,.abtn.on{border-color:var(--forest);color:var(--forest);background:var(--fL)}
+.btn-pay{width:100%;background:var(--forest);color:#fff;font-size:14px;font-weight:600;padding:12px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);transition:var(--tr);margin-top:6px}
+.btn-pay:hover{background:#1B7A3F}
+.tog-row{display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-top:1px solid var(--rule);margin-top:7px}
+.tog-lbl{font-size:13px;color:var(--ink2)}
+.tog{width:34px;height:18px;background:var(--pap3);border-radius:9px;position:relative;cursor:pointer;border:1px solid var(--rule);transition:var(--tr);flex-shrink:0}
+.tog.on{background:var(--forest);border-color:var(--forest)}
+.tog-th{position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left var(--tr)}
+.tog.on .tog-th{left:18px}
+/* DRIVE CARD */
+.dc{background:var(--pap2);border:1px solid var(--rule);border-radius:var(--r);padding:14px;margin-bottom:10px;transition:var(--tr)}
+.dc:hover{border-color:var(--forest);box-shadow:var(--sh)}
+.dc-n{font-family:var(--serif);font-size:14px;font-weight:700;margin-bottom:4px}
+.dc-s{font-size:11px;color:var(--ink3);margin-bottom:8px}
+.pb2{height:4px;background:var(--pap3);border-radius:2px;overflow:hidden;margin-bottom:3px}
+.pf{height:100%;border-radius:2px;background:var(--forest);transition:width .6s}
+.pm{display:flex;justify-content:space-between;font-size:10px;color:var(--ink3);font-weight:600}
+/* TRAIL */
+.ti{display:flex;gap:11px;padding:10px 0;border-bottom:1px solid var(--rule)}.ti:last-child{border-bottom:none}
+.tic{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.ti-t{font-size:13px;font-weight:600;margin-bottom:2px}
+.ti-d{font-size:11px;color:var(--ink3);line-height:1.4}
+.ti-a{font-family:var(--serif);font-size:15px;font-weight:700;color:var(--forest);margin-left:auto;flex-shrink:0}
+/* HISTORY ROW */
+.hr{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--rule)}.hr:last-child{border-bottom:none}
+.badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}
+.b-used{background:var(--fL);color:var(--forest)}.b-pend{background:var(--gL);color:var(--gold)}.b-dlvd{background:var(--bL);color:var(--ink-blue)}
+/* AUTH */
+#auth{position:fixed;inset:0;background:var(--pap);z-index:300;display:flex;align-items:center;justify-content:center}
+.auth-box{background:var(--pap);border:1px solid var(--rule);border-radius:var(--rL);padding:32px;width:360px;box-shadow:var(--sh)}
+.choice-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.choice{background:var(--pap2);border:1px solid var(--rule);border-radius:var(--r);padding:13px;cursor:pointer;transition:var(--tr);text-align:center}
+.choice:hover,.choice.on{border-color:var(--forest);background:var(--fL)}
+#toasts{position:fixed;top:60px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{background:var(--ink);color:var(--pap);padding:10px 15px;border-radius:9px;font-size:13px;max-width:290px;opacity:0;transform:translateX(14px);transition:all .3s;line-height:1.4}
+.toast.show{opacity:1;transform:translateX(0)}.toast.success{background:var(--forest)}.toast.warn{background:var(--gold)}
+.empty{text-align:center;padding:26px;color:var(--ink3);font-size:13px;line-height:1.7}
+.skel{background:linear-gradient(90deg,var(--pap2) 25%,var(--pap3) 50%,var(--pap2) 75%);background-size:200%;animation:sh 1.4s infinite;border-radius:4px}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(max-width:720px){.sg{grid-template-columns:1fr 1fr}.tgrid{grid-template-columns:repeat(2,1fr)}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+<!-- AUTH -->
+<div id="auth">
+  <div class="auth-box">
+    <div style="font-family:var(--serif);font-size:22px;font-weight:700;margin-bottom:5px">Donor Portal</div>
+    <div style="font-size:13px;color:var(--ink3);margin-bottom:22px">Register or login to start giving. Every contribution tracked.</div>
+    <div class="fr"><label class="fl">Phone number</label><input class="fi" id="aPhone" type="tel" placeholder="+91 98765 43210"></div>
+    <div id="aTypeRow" style="display:none">
+      <div class="fl">I am donating as</div>
+      <div class="choice-grid" style="margin-bottom:12px">
+        <div class="choice on" id="cInd" onclick="selType('individual',this)"><div style="font-size:18px;margin-bottom:5px">👤</div><div style="font-size:13px;font-weight:600">Individual</div><div style="font-size:11px;color:var(--ink3)">Personal donations</div></div>
+        <div class="choice" id="cOrg" onclick="selType('organisation',this)"><div style="font-size:18px;margin-bottom:5px">🏢</div><div style="font-size:13px;font-weight:600">Organisation</div><div style="font-size:11px;color:var(--ink3)">CSR / NGO / Corporate</div></div>
+      </div>
+      <div class="fr"><label class="fl">OTP (dev: 123456)</label><input class="fi" id="aOtp" type="text" maxlength="6" placeholder="6-digit OTP"></div>
+    </div>
+    <div id="aBtnRow"><button class="btn-pay" onclick="authReq()" style="border-radius:8px">Request OTP</button></div>
+    <div style="font-size:11px;color:var(--ink3);text-align:center;margin-top:11px">Dev OTP is always <strong style="color:var(--forest)">123456</strong></div>
+  </div>
+</div>
+<!-- APP -->
+<div id="app">
+  <div id="sb">
+    <div class="sb-brand">
+      <div class="sb-lm"><svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <div><div class="sb-n">NRFRP Donor</div><div class="sb-s">Every rupee tracked</div></div>
+    </div>
+    <div class="sb-sec">GIVE</div>
+    <div class="sb-item on" onclick="go('donate',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Donate now</div>
+    <div class="sb-item" onclick="go('drives',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Active drives</div>
+    <div class="sb-sec">MY ACCOUNT</div>
+    <div class="sb-item" onclick="go('history',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Donation history</div>
+    <div class="sb-item" onclick="go('impact',this)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>Impact trail</div>
+    <div class="sb-foot">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:30px;height:30px;border-radius:50%;background:rgba(111,207,151,.2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#6FCF97" id="dAv">?</div>
+        <div><div style="font-size:12px;font-weight:500;color:rgba(255,255,255,.8)" id="dEmail">—</div><div style="font-size:10px;color:rgba(255,255,255,.35)" id="dType">Donor</div></div>
+        <button style="background:transparent;border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.45);font-size:11px;padding:4px 9px;border-radius:6px;cursor:pointer;margin-left:auto;font-family:var(--font)" onclick="logout()">Out</button>
+      </div>
+    </div>
+  </div>
+  <div id="main">
+    <div class="topbar">
+      <div class="tb-t" id="tbTitle">Donate now</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--rule);color:var(--ink3)" id="liveLabel">Connecting</span>
+        <a href="/public" style="font-size:12px;color:var(--forest);font-weight:600;text-decoration:none">← Public</a>
+      </div>
+    </div>
+    <!-- SLIDER -->
+    <div class="slider-wrap">
+      <div class="slides" id="slides">
+        <div class="slide s1"><div class="slide-badge">Every rupee tracked</div><h2>Give with complete<br><em>transparency</em></h2><p>Your ₹2,000 → bought medicines for 3 patients. Every fund transaction linked to a case and bill.</p><button class="slide-btn" onclick="go('donate',null)">Start donating →</button></div>
+        <div class="slide s2"><div class="slide-badge">Active drives · real time</div><h2>Support ongoing<br><em>campaigns</em></h2><p>Donate directly to a specific drive. See real-time progress and exactly how your contribution is used.</p><button class="slide-btn" onclick="go('drives',null)">Browse drives →</button></div>
+        <div class="slide s3"><div class="slide-badge">Multiple ways to give</div><h2>More than just<br><em>money</em></h2><p>Food, medicines, clothes, transport, skills, accommodation — every type of donation accepted and tracked.</p><button class="slide-btn" onclick="go('donate',null)">Choose type →</button></div>
+      </div>
+      <div class="dots"><div class="dot on" onclick="goSlide(0)"></div><div class="dot" onclick="goSlide(1)"></div><div class="dot" onclick="goSlide(2)"></div></div>
+      <div class="snav sprev"><button class="snbtn" onclick="prevSlide()">‹</button></div>
+      <div class="snav snext"><button class="snbtn" onclick="nextSlide()">›</button></div>
+    </div>
+    <!-- DONATE -->
+    <div class="content" id="pg-donate">
+      <div class="sg">
+        <div class="sc"><div class="sc-l">Total given</div><div class="sc-v" id="d-total" style="color:var(--forest)">—</div></div>
+        <div class="sc"><div class="sc-l">Contributions</div><div class="sc-v" id="d-count">—</div></div>
+        <div class="sc"><div class="sc-l">Active drives</div><div class="sc-v" id="d-drives">—</div></div>
+        <div class="sc"><div class="sc-l">Used donations</div><div class="sc-v" id="d-used">—</div></div>
+      </div>
+      <div style="font-family:var(--serif);font-size:18px;font-weight:700;margin-bottom:12px">What would you like to give?</div>
+      <div class="tgrid" id="typeGrid">
+        <div class="tc on" onclick="selDT('money',this)"><div class="tc-ic">💰</div><div class="tc-n">Money</div><div class="tc-s">UPI · card · net banking</div></div>
+        <div class="tc" onclick="selDT('food',this)"><div class="tc-ic">🥘</div><div class="tc-n">Food</div><div class="tc-s">Fresh / packaged meals</div></div>
+        <div class="tc" onclick="selDT('medicines',this)"><div class="tc-ic">💊</div><div class="tc-n">Medicines</div><div class="tc-s">OTC or prescription</div></div>
+        <div class="tc" onclick="selDT('clothes',this)"><div class="tc-ic">👕</div><div class="tc-n">Clothes</div><div class="tc-s">Any size, good condition</div></div>
+        <div class="tc" onclick="selDT('accommodation',this)"><div class="tc-ic">🏠</div><div class="tc-n">Accommodation</div><div class="tc-s">Room or guest house</div></div>
+        <div class="tc" onclick="selDT('transport',this)"><div class="tc-ic">🚗</div><div class="tc-n">Transport</div><div class="tc-s">Vehicle + availability</div></div>
+        <div class="tc" onclick="selDT('equipment',this)"><div class="tc-ic">♿</div><div class="tc-n">Equipment</div><div class="tc-s">Medical devices, furniture</div></div>
+        <div class="tc" onclick="selDT('skill',this)"><div class="tc-ic">🧠</div><div class="tc-n">Skill / time</div><div class="tc-s">Professional expertise</div></div>
+      </div>
+      <div class="g2">
+        <div class="panel">
+          <div class="ph"><span class="pt" id="dFormTitle">Make a donation</span></div>
+          <div class="pb" id="dFormBody">
+            <div id="moneySection">
+              <div class="fr"><label class="fl">Select amount</label>
+                <div class="agrid">
+                  <div class="abtn" onclick="selAmt(this,'500')">₹500</div>
+                  <div class="abtn on" onclick="selAmt(this,'1000')">₹1,000</div>
+                  <div class="abtn" onclick="selAmt(this,'2500')">₹2,500</div>
+                  <div class="abtn" onclick="selAmt(this,'5000')">₹5,000</div>
+                </div>
+                <input class="fi" type="number" id="customAmt" placeholder="Or enter custom amount (₹)">
+              </div>
+            </div>
+            <div id="nonMoneySection" style="display:none">
+              <div class="fr"><label class="fl">Quantity</label><input class="fi" type="number" id="donQty" placeholder="e.g. 10 kg, 5 packs, 2 items"></div>
+              <div class="fr"><label class="fl">Description</label><input class="fi" id="donDesc" placeholder="Brief description of what you're donating..."></div>
+            </div>
+            <div class="fr"><label class="fl">Allocate to drive (optional)</label>
+              <select class="fi" id="driveAlloc"><option value="">General fund — admin allocates to most urgent need</option></select>
+            </div>
+            <div class="fr"><label class="fl">Donation frequency</label>
+              <select class="fi" id="donFreq"><option value="once">One-time</option><option value="monthly">Monthly recurring</option></select>
+            </div>
+            <div class="tog-row"><span class="tog-lbl">Donate anonymously</span><div class="tog" id="anonTog" onclick="this.classList.toggle('on');this.querySelector('.tog-th').style.left=this.classList.contains('on')?'18px':'2px'"><div class="tog-th"></div></div></div>
+            <button class="btn-pay" onclick="submitDonation()">Complete donation →</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--serif);font-size:16px;font-weight:700;margin-bottom:12px">Active drives</div>
+          <div id="drivesPreview"><div class="skel" style="height:80px;border-radius:9px;margin-bottom:10px"></div><div class="skel" style="height:80px;border-radius:9px"></div></div>
+        </div>
+      </div>
+    </div>
+    <!-- DRIVES -->
+    <div class="content" id="pg-drives" style="display:none">
+      <div style="font-family:var(--serif);font-size:20px;font-weight:700;margin-bottom:14px">Active drives</div>
+      <div id="drivesPage"><div class="skel" style="height:100px;border-radius:9px;margin-bottom:10px"></div></div>
+    </div>
+    <!-- HISTORY -->
+    <div class="content" id="pg-history" style="display:none">
+      <div style="font-family:var(--serif);font-size:20px;font-weight:700;margin-bottom:14px">Donation history</div>
+      <div class="panel"><div class="pb" id="histList"><div class="skel" style="height:200px"></div></div></div>
+    </div>
+    <!-- IMPACT -->
+    <div class="content" id="pg-impact" style="display:none">
+      <div style="font-family:var(--serif);font-size:20px;font-weight:700;margin-bottom:5px">Your impact trail</div>
+      <div style="font-size:13px;color:var(--ink3);margin-bottom:14px">See exactly where every rupee went — linked to a case, a bill, and a verified outcome.</div>
+      <div class="panel"><div class="pb" id="impactList"><div class="skel" style="height:200px"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// In your HTML script tags:
+const API = 'http://localhost:4000/api';
+let token=localStorage.getItem('nrfrp_donor_token');
+let donorType='individual',donationType='money',selAmount='1000',drivesArr=[];
+
+// AUTH
+async function authReq(){
+  const ph=document.getElementById('aPhone').value.trim();
+  if(!ph){toast('Enter phone number');return}
+  const r=await fetch(API+'/auth/otp/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  if(r.success){
+    document.getElementById('aTypeRow').style.display='block';
+    document.getElementById('aBtnRow').innerHTML='<button class="btn-pay" onclick="authVerify()" style="border-radius:8px">Verify OTP</button>';
+    toast('OTP sent! Dev: 123456');
+  } else toast(r.error||'Failed');
+}
+async function authVerify(){
+  const ph=document.getElementById('aPhone').value.trim();
+  const otp=document.getElementById('aOtp').value.trim();
+  if(otp.length!==6){toast('Enter 6-digit OTP');return}
+  const r=await fetch(API+'/auth/otp/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,otp,role:'donor'})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  if(r.token){
+    token=r.token;localStorage.setItem('nrfrp_donor_token',token);
+    document.getElementById('auth').style.display='none';
+    document.getElementById('app').classList.add('vis');
+    document.getElementById('dEmail').textContent=r.user.email||ph;
+    document.getElementById('dAv').textContent=(r.user.email||ph).substring(0,2).toUpperCase();
+    document.getElementById('dType').textContent=donorType+' donor';
+    loadAll();initWS();
+  } else toast(r.error||'Login failed');
+}
+function selType(t,el){donorType=t;document.querySelectorAll('.choice').forEach(c=>c.classList.remove('on'));el.classList.add('on')}
+function logout(){localStorage.removeItem('nrfrp_donor_token');location.reload()}
+
+// NAV
+function go(page,el){
+  ['donate','drives','history','impact'].forEach(p=>{const d=document.getElementById('pg-'+p);if(d)d.style.display='none'});
+  const pg=document.getElementById('pg-'+page);if(pg)pg.style.display='block';
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('on'));if(el)el.classList.add('on');
+  const titles={donate:'Donate now',drives:'Active drives',history:'Donation history',impact:'Impact trail'};
+  document.getElementById('tbTitle').textContent=titles[page]||page;
+  if(page==='history')loadHistory();
+  if(page==='impact')loadImpact();
+  if(page==='drives')loadDrivesPage();
+}
+
+// SLIDER
+let cur=0;
+function goSlide(n){cur=n;document.getElementById('slides').style.transform=`translateX(-${n*100}%)`;document.querySelectorAll('.dot').forEach((d,i)=>d.classList.toggle('on',i===n))}
+function nextSlide(){goSlide((cur+1)%3)}
+function prevSlide(){goSlide((cur+2)%3)}
+setInterval(nextSlide,5500);
+
+// LOAD
+const H=()=>({'Content-Type':'application/json','Authorization':'Bearer '+token});
+const fmt=n=>{n=parseFloat(n)||0;if(n>=100000)return'₹'+(n/100000).toFixed(1)+'L';if(n>=1000)return'₹'+(n/1000).toFixed(1)+'K';return'₹'+Math.round(n).toLocaleString('en-IN')};
+const ago=d=>{if(!d)return'';const m=Math.floor((Date.now()-new Date(d))/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago'};
+function toast(msg,type=''){const c=document.getElementById('toasts');const t=document.createElement('div');t.className='toast '+(type||'');t.textContent=msg;c.appendChild(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300)},4500)}
+
+async function loadAll(){
+  try{
+    const d=await fetch(API+'/donor/dashboard',{headers:H()}).then(r=>r.json());
+    const s=d.stats||{};
+    document.getElementById('d-total').textContent=fmt(s.total_money||0);
+    document.getElementById('d-count').textContent=parseInt(s.total_donations)||0;
+    document.getElementById('d-used').textContent=parseInt(s.used_count)||0;
+    drivesArr=d.drives||[];
+    document.getElementById('d-drives').textContent=drivesArr.filter(dr=>dr.status==='active').length;
+    renderDrivesPreview();
+    populateDriveSelect();
+  }catch(e){console.error(e)}
+}
+
+function renderDrivesPreview(){
+  const el=document.getElementById('drivesPreview');if(!el)return;
+  if(!drivesArr.length){el.innerHTML='<div class="empty">No active drives.<br>Donations go to the general fund.</div>';return}
+  el.innerHTML=drivesArr.filter(d=>d.status==='active').map(d=>{
+    const p=d.fund_target>0?Math.min(100,Math.round(d.fund_collected/d.fund_target*100)):0;
+    return`<div class="dc"><div class="dc-n">${d.name}</div><div class="dc-s">${d.area||''} · ${d.volunteers_assigned||0} volunteers</div>
+      <div class="pb2"><div class="pf" style="width:${p}%"></div></div>
+      <div class="pm"><span>${fmt(d.fund_collected||0)} raised</span><span>${p}% of ${fmt(d.fund_target||0)}</span></div>
+      <button style="margin-top:8px;font-size:11px;padding:5px 12px;background:var(--fL);color:var(--forest);border:none;border-radius:5px;cursor:pointer;font-family:var(--font);font-weight:600" onclick="document.getElementById('driveAlloc').value='${d.id}';toast('Drive selected: ${d.name.substring(0,30)}...')">Donate to this drive</button>
+    </div>`;
+  }).join('');
+}
+function loadDrivesPage(){
+  const el=document.getElementById('drivesPage');if(!el)return;
+  if(!drivesArr.length){el.innerHTML='<div class="empty">No active drives right now.</div>';return}
+  el.innerHTML=drivesArr.map(d=>{
+    const p=d.fund_target>0?Math.min(100,Math.round(d.fund_collected/d.fund_target*100)):0;
+    return`<div class="dc" style="margin-bottom:12px"><div class="dc-n">${d.name}</div><div class="dc-s">${d.area||''} · ${d.type} · ends ${d.end_date?new Date(d.end_date).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'—'}</div>
+      <div class="pb2"><div class="pf" style="width:${p}%"></div></div>
+      <div class="pm" style="margin-bottom:8px"><span>${fmt(d.fund_collected||0)} of ${fmt(d.fund_target||0)}</span><span>${p}%</span></div>
+      <button style="font-size:12px;padding:7px 16px;background:var(--forest);color:#fff;border:none;border-radius:7px;cursor:pointer;font-family:var(--font);font-weight:600" onclick="document.getElementById('driveAlloc').value='${d.id}';go('donate',document.querySelector('[onclick*=donate]'))">Donate to this →</button>
+    </div>`;
+  }).join('');
+}
+function populateDriveSelect(){
+  const sel=document.getElementById('driveAlloc');if(!sel)return;
+  sel.innerHTML='<option value="">General fund — admin allocates to most urgent need</option>';
+  drivesArr.filter(d=>d.status==='active').forEach(d=>{sel.innerHTML+=`<option value="${d.id}">${d.name}</option>`});
+}
+
+async function loadHistory(){
+  const d=await fetch(API+'/donor/dashboard',{headers:H()}).then(r=>r.json()).catch(()=>({}));
+  const el=document.getElementById('histList');if(!el)return;
+  const hist=d.history||[];
+  if(!hist.length){el.innerHTML='<div class="empty">No donations yet.<br><a href="#" onclick="go(\'donate\',null)" style="color:var(--forest);font-weight:600">Make your first donation</a></div>';return}
+  const ico={money:'💰',food:'🥘',medicines:'💊',clothes:'👕',accommodation:'🏠',transport:'🚗',equipment:'♿',skill:'🧠'};
+  const sc={used:'b-used',delivered:'b-dlvd',in_transit:'b-dlvd',collected:'b-pend',pending:'b-pend'};
+  el.innerHTML=hist.map(h=>`<div class="hr">
+    <div style="display:flex;align-items:center;gap:9px;flex:1">
+      <div style="width:30px;height:30px;border-radius:7px;background:var(--fL);display:flex;align-items:center;justify-content:center;font-size:12px">${ico[h.type]||'?'}</div>
+      <div><div style="font-size:13px;font-weight:500">${h.type} ${h.amount?'· '+fmt(h.amount):(h.quantity?'· '+h.quantity+' items':'')}</div><div style="font-size:11px;color:var(--ink3)">${h.drive_name||'General fund'} · ${ago(h.created_at)}</div></div>
+    </div>
+    <span class="badge ${sc[h.status]||'b-pend'}">${h.status}</span>
+  </div>`).join('');
+}
+
+async function loadImpact(){
+  const d=await fetch(API+'/donor/dashboard',{headers:H()}).then(r=>r.json()).catch(()=>({}));
+  const el=document.getElementById('impactList');if(!el)return;
+  const used=(d.history||[]).filter(h=>h.status==='used'||h.status==='delivered');
+  if(!used.length){el.innerHTML='<div class="empty">Your impact trail will appear here as donations are used.<br><br>Once admin allocates your donation to a case and adds a bill, you\'ll see exactly where it went.</div>';return}
+  el.innerHTML=used.map(h=>`<div class="ti">
+    <div class="tic" style="background:var(--fL)">💚</div>
+    <div style="flex:1">
+      <div class="ti-t">${fmt(h.amount||0)} → ${h.drive_name||'helped people in need'}</div>
+      <div class="ti-d">Donation ${h.status} · ${ago(h.created_at)}</div>
+    </div>
+    <div class="ti-a">${h.amount?fmt(h.amount):''}</div>
+  </div>`).join('');
+}
+
+// DONATE FORM
+function selDT(type,el){
+  donationType=type;
+  document.querySelectorAll('#typeGrid .tc').forEach(c=>c.classList.remove('on'));el.classList.add('on');
+  document.getElementById('dFormTitle').textContent=type==='money'?'Make a donation':'Donate '+type;
+  const isMoney=type==='money';
+  document.getElementById('moneySection').style.display=isMoney?'block':'none';
+  document.getElementById('nonMoneySection').style.display=isMoney?'none':'block';
+}
+function selAmt(el,amt){selAmount=amt;document.querySelectorAll('.abtn').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('customAmt').value=''}
+async function submitDonation(){
+  const custom=document.getElementById('customAmt').value;
+  const amount=donationType==='money'?(custom?parseFloat(custom):parseFloat(selAmount)):null;
+  if(donationType==='money'&&!amount){toast('Enter an amount');return}
+  const qty=donationType!=='money'?parseInt(document.getElementById('donQty')?.value)||1:null;
+  const anon=document.getElementById('anonTog').classList.contains('on');
+  const driveId=document.getElementById('driveAlloc').value||null;
+  const r=await fetch(API+'/donor',{method:'POST',headers:H(),body:JSON.stringify({type:donationType,amount,quantity:qty,description:donationType!=='money'?document.getElementById('donDesc')?.value||null:null,drive_id:driveId,is_anonymous:anon,is_recurring:document.getElementById('donFreq').value==='monthly'})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+  if(r.donation){
+    toast(donationType==='money'?`Payment of ₹${amount?.toLocaleString('en-IN')} submitted!`:'Donation submitted!','success');
+    setTimeout(()=>{loadAll();go('history',document.querySelector('[onclick*=history]'))},1200);
+  } else toast(r.error||'Failed');
+}
+
+function initWS(){
+  const sock=io(window.location.origin,{auth:{token},transports:['websocket','polling']});
+  sock.on('connect',()=>{document.getElementById('liveLabel').textContent='● Live';document.getElementById('liveLabel').style.color='var(--forest)'});
+  sock.on('disconnect',()=>{document.getElementById('liveLabel').textContent='Reconnecting...'});
+  sock.on('donation:update',d=>{if(d.donorId)setTimeout(loadAll,400)});
+  sock.on('stats:update',()=>setTimeout(loadAll,400));
+  sock.on('drive:update',()=>fetch(API+'/donor/dashboard',{headers:H()}).then(r=>r.json()).then(d=>{drivesArr=d.drives||[];renderDrivesPreview();populateDriveSelect()}).catch(()=>{}));
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  if(token){
+    fetch(API+'/donor/dashboard',{headers:H()}).then(r=>{
+      if(r.status===401){localStorage.removeItem('nrfrp_donor_token');return}
+      document.getElementById('auth').style.display='none';
+      document.getElementById('app').classList.add('vis');
+      loadAll();initWS();
+    }).catch(()=>{});
+  }
+  document.getElementById('aOtp')?.addEventListener('keydown',e=>{if(e.key==='Enter')authVerify()});
+  document.getElementById('aPhone')?.addEventListener('keydown',e=>{if(e.key==='Enter')authReq()});
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NRFRP — Admin Control Centre</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0A0C0F;--bg2:#111318;--bg3:#181B22;--bg4:#1F2330;--bg5:#272D3C;
+  --t:#DCE0EC;--t2:#7D87A0;--t3:#4A5268;--bd:#1E2233;--bdL:#262D40;
+  --g:#00C27B;--gD:#009960;--gL:rgba(0,194,123,.1);--gG:rgba(0,194,123,.05);
+  --r:#E55353;--rL:rgba(229,83,83,.1);--a:#F0A030;--aL:rgba(240,160,48,.1);
+  --b:#4A90E2;--bL:rgba(74,144,226,.1);--pu:#9B72E8;--puL:rgba(155,114,232,.1);
+  --sb:238px;--top:50px;--r2:10px;--rL2:14px;--font:'Outfit',sans-serif;--serif:'Syne',sans-serif;
+  --tr:.16s ease;--sh:0 2px 16px rgba(0,0,0,.4)}
+body{font-family:var(--font);background:var(--bg);color:var(--t);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:3px}
+#shell{display:none;min-height:100vh}
+#shell.vis{display:flex}
+#sb{width:var(--sb);background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:50;overflow-y:auto}
+#main{margin-left:var(--sb);flex:1;display:flex;flex-direction:column;min-height:100vh}
+.sb-brand{padding:14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px;min-height:var(--top)}
+.sb-lm{width:30px;height:30px;background:var(--a);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-lm svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.sb-n{font-family:var(--serif);font-size:13px;font-weight:600}.sb-s{font-size:10px;color:var(--t3)}
+.sb-sec{font-size:10px;font-weight:600;color:var(--t3);padding:13px 14px 4px;letter-spacing:.1em;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:var(--t2);border-left:2px solid transparent;transition:var(--tr);position:relative}
+.sb-item:hover{background:var(--bg3);color:var(--t)}
+.sb-item.on{background:var(--gG);color:var(--g);border-left-color:var(--g);font-weight:500}
+.sb-item svg{width:14px;height:14px;flex-shrink:0}
+.sb-badge{margin-left:auto;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center}
+.sb-badge.red{background:var(--r);color:#fff}.sb-badge.amber{background:var(--a);color:#1a1000}
+.sb-foot{padding:12px 14px;border-top:1px solid var(--bd);margin-top:auto}
+.sb-av{width:28px;height:28px;border-radius:50%;background:var(--gL);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--g)}
+#topbar{position:sticky;top:0;background:rgba(17,19,24,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);height:var(--top);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:40}
+.tb-t{font-family:var(--serif);font-size:14px;font-weight:600}.tb-r{display:flex;align-items:center;gap:8px}
+.chip{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--bd);color:var(--t2)}
+.chip.live{border-color:var(--g);color:var(--g);background:var(--gL);display:flex;align-items:center;gap:4px}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,194,123,.4)}50%{box-shadow:0 0 0 5px transparent}}
+.page{padding:20px;display:none}.page.on{display:block}
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.sc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:13px 15px;transition:var(--tr)}
+.sc:hover{border-color:var(--bdL)}
+.sc-l{font-size:11px;color:var(--t2);margin-bottom:5px}.sc-v{font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.sc-d{font-size:11px;margin-top:4px;color:var(--t3)}
+.sc-d.up{color:var(--g)}.sc-d.dn{color:var(--r)}.sc-d.wn{color:var(--a)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:13px;margin-bottom:14px}
+.panel{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rL2);overflow:hidden}
+.ph{padding:12px 15px 9px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.pt{font-family:var(--serif);font-size:13px;font-weight:600}
+.pa{font-size:11px;color:var(--g);cursor:pointer;font-weight:500}
+.pb{padding:12px 15px}
+.ptabs{display:flex;border-bottom:1px solid var(--bd)}
+.ptab{padding:9px 13px;font-size:12px;color:var(--t2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:var(--tr);font-weight:500}
+.ptab.on{color:var(--g);border-bottom-color:var(--g)}
+.qi{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd)}.qi:last-child{border-bottom:none}
+.qi-l{flex:1}.qi-n{font-size:12px;font-weight:500}.qi-s{font-size:11px;color:var(--t2);margin-top:1px}
+.qi-a{display:flex;gap:5px;flex-shrink:0}
+.btn{font-size:12px;padding:5px 12px;border-radius:7px;cursor:pointer;font-family:var(--font);border:1px solid transparent;transition:var(--tr);font-weight:500;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}
+.btn-p{background:var(--g);color:#fff;border-color:var(--g)}.btn-p:hover{background:var(--gD)}
+.btn-g{background:transparent;border-color:var(--bd);color:var(--t2)}.btn-g:hover{border-color:var(--bdL);color:var(--t)}
+.btn-ok{background:var(--gL);color:var(--g);border-color:rgba(0,194,123,.25)}.btn-ok:hover{background:rgba(0,194,123,.18)}
+.btn-no{background:var(--rL);color:var(--r);border-color:rgba(229,83,83,.25)}.btn-no:hover{background:rgba(229,83,83,.18)}
+.btn-info{background:var(--bL);color:var(--b);border-color:rgba(74,144,226,.25)}
+.btn-lg{font-size:13px;padding:9px 20px;border-radius:8px}
+.btn-full{width:100%;justify-content:center}
+.badge{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px}
+.b-crit{background:var(--rL);color:var(--r)}.b-high{background:var(--aL);color:var(--a)}.b-norm{background:var(--gL);color:var(--g)}.b-pend{background:var(--aL);color:var(--a)}.b-done{background:var(--bg5);color:var(--t3)}
+.fr{margin-bottom:12px}.fl{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:5px;display:block}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:7px;padding:9px 12px;color:var(--t);font-size:13px;font-family:var(--font);outline:none;transition:var(--tr)}
+.fi:focus{border-color:var(--g)}.fi::placeholder{color:var(--t3)}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fi-ta{resize:vertical;min-height:72px}
+.fi-sel{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237D87A0'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.cw{position:relative;height:180px;width:100%}
+.leg{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;font-size:11px;color:var(--t2);font-weight:500}
+.ld2{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:3px}
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;padding:7px 10px;color:var(--t3);font-weight:600;font-size:10px;border-bottom:1px solid var(--bd);text-transform:uppercase;letter-spacing:.06em}
+.tbl td{padding:9px 10px;border-bottom:1px solid var(--bd);color:var(--t);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.lr{display:flex;align-items:flex-start;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--bd)}.lr:last-child{border-bottom:none}
+.li{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-right:9px}
+.ll{display:flex;align-items:flex-start;flex:1}
+.ldate{font-size:10px;color:var(--t3);margin-bottom:1px}.lname{font-size:12px;font-weight:500}.lsub{font-size:11px;color:var(--t2)}
+.lr-r{text-align:right;flex-shrink:0;padding-left:9px}.la{font-size:13px;font-weight:600}.lp{font-size:10px;color:var(--b);margin-top:2px}
+.fr-row{display:flex;gap:9px;padding:9px 0;border-bottom:1px solid var(--bd)}.fr-row:last-child{border-bottom:none}
+.fr-ic{width:30px;height:30px;border-radius:7px;background:var(--rL);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.fr-n{font-size:12px;font-weight:500;margin-bottom:2px}.fr-d{font-size:11px;color:var(--t2)}
+.proof-wrap{background:var(--bg3);border:1px solid var(--bd);border-radius:10px;padding:13px;margin-bottom:9px;display:flex;align-items:center;justify-content:space-between}
+.proof-warn{background:var(--aL);border:1px solid rgba(240,160,48,.2);border-radius:8px;padding:11px 13px;margin-bottom:13px;font-size:12px;color:var(--a);line-height:1.5}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity var(--tr);backdrop-filter:blur(5px)}
+.modal-bg.open{opacity:1;pointer-events:auto}
+.modal{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rL2);padding:24px;width:520px;max-width:94vw;max-height:90vh;overflow-y:auto;transform:scale(.95);transition:transform var(--tr);box-shadow:0 12px 48px rgba(0,0,0,.6)}
+.modal-bg.open .modal{transform:scale(1)}
+.modal h3{font-family:var(--serif);font-size:17px;font-weight:600;margin-bottom:15px}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;padding-top:13px;border-top:1px solid var(--bd)}
+#login{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center}
+.login-box{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rL2);padding:32px;width:380px;box-shadow:0 12px 48px rgba(0,0,0,.6)}
+.otp-row{display:flex;gap:7px;justify-content:center;margin-bottom:14px}
+.otp-i{width:42px;height:50px;background:var(--bg3);border:1px solid var(--bd);border-radius:7px;text-align:center;font-size:22px;font-weight:600;color:var(--t);font-family:var(--font);outline:none;transition:var(--tr)}
+.otp-i:focus{border-color:var(--g);background:var(--bg4)}
+#toasts{position:fixed;top:60px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{background:var(--bg2);border:1px solid var(--bd);color:var(--t);padding:9px 14px;border-radius:8px;font-size:12px;max-width:290px;opacity:0;transform:translateX(14px);transition:all .3s;line-height:1.4}
+.toast.show{opacity:1;transform:translateX(0)}.toast.success{border-color:var(--g)}.toast.error{border-color:var(--r)}.toast.warn{border-color:var(--a)}
+.empty{text-align:center;padding:24px;color:var(--t3);font-size:12px;line-height:1.7}
+.skel{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200%;animation:sh 1.4s infinite;border-radius:4px}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:24px">
+      <div class="sb-lm" style="width:36px;height:36px;border-radius:9px"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <div><div style="font-family:var(--serif);font-size:17px;font-weight:600">Admin Control Centre</div><div style="font-size:11px;color:var(--t3)">MFA · IP-whitelisted · All actions audited</div></div>
+    </div>
+    <div id="loginErr" style="background:var(--rL);color:var(--r);font-size:12px;padding:8px 12px;border-radius:7px;margin-bottom:12px;display:none"></div>
+    <div class="fr"><label class="fl">Phone number</label><input class="fi" id="lPhone" type="tel" placeholder="+91 00000 00000"></div>
+    <div id="otpBlock" style="display:none">
+      <label class="fl" style="margin-bottom:8px">OTP (dev mode: 123456)</label>
+      <div class="otp-row">
+        <input class="otp-i" maxlength="1" oninput="otpNext(this,0)">
+        <input class="otp-i" maxlength="1" oninput="otpNext(this,1)">
+        <input class="otp-i" maxlength="1" oninput="otpNext(this,2)">
+        <input class="otp-i" maxlength="1" oninput="otpNext(this,3)">
+        <input class="otp-i" maxlength="1" oninput="otpNext(this,4)">
+        <input class="otp-i" maxlength="1" oninput="otpNext(this,5)">
+      </div>
+    </div>
+    <button class="btn btn-p btn-full btn-lg" id="loginBtn" onclick="loginStep()">Send OTP</button>
+    <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:12px">Dev: phone <strong style="color:var(--t2)">+910000000000</strong> · OTP <strong style="color:var(--g)">123456</strong></div>
+  </div>
+</div>
+
+<!-- SHELL -->
+<div id="shell">
+  <div id="sb">
+    <div class="sb-brand">
+      <div class="sb-lm"><svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
+      <div><div class="sb-n">NRFRP Admin</div><div class="sb-s">Master Control</div></div>
+    </div>
+    <div class="sb-sec">OVERVIEW</div>
+    <div class="sb-item on" onclick="go('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>Dashboard
+    </div>
+    <div class="sb-sec">APPROVALS</div>
+    <div class="sb-item" onclick="go('cases',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>Needy cases
+      <span class="sb-badge red" id="b-cases">—</span>
+    </div>
+    <div class="sb-item" onclick="go('donors',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Donors
+      <span class="sb-badge amber" id="b-donors">—</span>
+    </div>
+    <div class="sb-item" onclick="go('volunteers',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>Volunteers
+      <span class="sb-badge amber" id="b-vols">—</span>
+    </div>
+    <div class="sb-sec">OPERATIONS</div>
+    <div class="sb-item" onclick="go('drives',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>Drives
+    </div>
+    <div class="sb-item" onclick="go('notices',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Notices
+    </div>
+    <div class="sb-item" onclick="go('funds',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>Fund ledger
+    </div>
+    <div class="sb-item" onclick="go('tasks',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>Task dispatch
+    </div>
+    <div class="sb-sec">SECURITY</div>
+    <div class="sb-item" onclick="go('fraud',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>Fraud alerts
+      <span class="sb-badge red" id="b-fraud">—</span>
+    </div>
+    <div class="sb-item" onclick="go('audit',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Audit log
+    </div>
+    <div class="sb-foot">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="sb-av" id="sbAv">SA</div>
+        <div><div style="font-size:12px;font-weight:500" id="sbEmail">Admin</div><div style="font-size:10px;color:var(--t3)">All actions logged</div></div>
+        <button class="btn btn-g" style="font-size:11px;margin-left:auto" onclick="logout()">Out</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <div class="tb-t" id="tbTitle">Dashboard</div>
+      <div class="tb-r">
+        <span class="chip live"><div class="ldot"></div>Live</span>
+        <span class="chip">MFA ✓</span>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page on" id="pg-dashboard">
+      <div class="sg" id="dStats">
+        <div class="sc"><div class="sc-l">Total donations</div><div class="sc-v" id="d-donated" style="color:var(--g)">—</div><div class="sc-d up">All sources</div></div>
+        <div class="sc"><div class="sc-l">Funds disbursed</div><div class="sc-v" id="d-disbursed">—</div><div class="sc-d up">Verified spend</div></div>
+        <div class="sc"><div class="sc-l">Active cases</div><div class="sc-v" id="d-cases">—</div><div class="sc-d wn" id="d-pend-lbl">— pending</div></div>
+        <div class="sc"><div class="sc-l">Active volunteers</div><div class="sc-v" id="d-vols">—</div></div>
+      </div>
+      <div class="sg">
+        <div class="sc"><div class="sc-l">People helped</div><div class="sc-v" id="d-helped">—</div></div>
+        <div class="sc"><div class="sc-l">Active drives</div><div class="sc-v" id="d-drives">—</div></div>
+        <div class="sc"><div class="sc-l">Pending approvals</div><div class="sc-v" id="d-approvals" style="color:var(--a)">—</div><div class="sc-d wn">Needs review</div></div>
+        <div class="sc"><div class="sc-l">Fraud flags</div><div class="sc-v" id="d-fraud-ct" style="color:var(--r)">—</div><div class="sc-d dn">Action required</div></div>
+      </div>
+      <div class="g2">
+        <div class="panel">
+          <div class="ph"><span class="pt">Monthly donations</span><div class="leg" style="margin:0"><span><span class="ld2" style="background:var(--g)"></span>Raised</span></div></div>
+          <div class="pb"><div class="cw"><canvas id="aC1" role="img" aria-label="Monthly donations trend"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="pt">Fund allocation</span></div>
+          <div class="pb"><div class="leg" id="allocLeg"></div><div class="cw"><canvas id="aC2" role="img" aria-label="Fund allocation"></canvas></div></div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="panel">
+          <div class="ph"><span class="pt">Pending approvals</span></div>
+          <div class="ptabs">
+            <div class="ptab on" onclick="qTab('cases',this)">Cases</div>
+            <div class="ptab" onclick="qTab('donors',this)">Donors</div>
+            <div class="ptab" onclick="qTab('vols',this)">Volunteers</div>
+          </div>
+          <div class="pb" id="qBody" style="min-height:90px"><div class="skel" style="height:70px"></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="pt">Fund ledger</span><span class="pa" onclick="openAddFund()">+ Add</span></div>
+          <div class="pb" id="dashFunds"><div class="skel" style="height:110px"></div></div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="panel">
+          <div class="ph"><span class="pt">Fraud alerts</span><span class="pa" onclick="go('fraud',null)">All →</span></div>
+          <div class="pb" id="dashFraud"><div class="skel" style="height:80px"></div></div>
+        </div>
+        <div class="panel">
+          <div class="ph"><span class="pt">Notices</span><span class="pa" onclick="openNoticeModal()">+ Publish</span></div>
+          <div class="pb" id="dashNotices"><div class="skel" style="height:80px"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CASES -->
+    <div class="page" id="pg-cases">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div><div style="font-family:var(--serif);font-size:18px;font-weight:600">Needy cases</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Click "View proof" to see documents before approving. All proof access is audit-logged.</div></div>
+      </div>
+      <div class="panel">
+        <div class="ph">
+          <span class="pt">All cases</span>
+          <div style="display:flex;gap:7px">
+            <select class="fi fi-sel" style="width:auto;padding:4px 26px 4px 8px;font-size:12px" id="cSF" onchange="loadCases()"><option value="">All status</option><option value="pending">Pending</option><option value="step2">Step 2</option><option value="active">Active</option><option value="closed">Closed</option></select>
+            <select class="fi fi-sel" style="width:auto;padding:4px 26px 4px 8px;font-size:12px" id="cUF" onchange="loadCases()"><option value="">All urgency</option><option value="critical">Critical</option><option value="high">High</option><option value="normal">Normal</option></select>
+          </div>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="tbl"><thead><tr><th>Type</th><th>Urgency</th><th>District</th><th>Help needed</th><th>Proof docs</th><th>Status</th><th>Submitted</th><th>Actions</th></tr></thead>
+          <tbody id="casesBody"><tr><td colspan="8" class="empty">Loading...</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- DONORS -->
+    <div class="page" id="pg-donors">
+      <div style="font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:14px">Donor accounts</div>
+      <div class="panel"><div style="overflow-x:auto">
+        <table class="tbl"><thead><tr><th>Email</th><th>Type</th><th>Total donated</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+        <tbody id="donorsBody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- VOLUNTEERS -->
+    <div class="page" id="pg-volunteers">
+      <div style="font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:14px">Volunteers</div>
+      <div class="panel"><div style="overflow-x:auto">
+        <table class="tbl"><thead><tr><th>Email</th><th>Skills</th><th>Tier</th><th>Tasks</th><th>Rating</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="volsBody"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- DRIVES -->
+    <div class="page" id="pg-drives">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:var(--serif);font-size:18px;font-weight:600">Drives & campaigns</div>
+        <button class="btn btn-p" onclick="openDriveModal()">+ Create drive</button>
+      </div>
+      <div class="panel"><div style="overflow-x:auto">
+        <table class="tbl"><thead><tr><th>Name</th><th>Type</th><th>Area</th><th>Progress</th><th>Volunteers</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="drivesBody"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- NOTICES -->
+    <div class="page" id="pg-notices">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:var(--serif);font-size:18px;font-weight:600">Notices</div>
+        <button class="btn btn-p" onclick="openNoticeModal()">+ Publish notice</button>
+      </div>
+      <div class="panel"><div style="overflow-x:auto">
+        <table class="tbl"><thead><tr><th>Title</th><th>Urgency</th><th>Area</th><th>Fund target</th><th>Published</th><th>Actions</th></tr></thead>
+        <tbody id="noticesBody"><tr><td colspan="6" class="empty">Loading...</td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- FUNDS -->
+    <div class="page" id="pg-funds">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font-family:var(--serif);font-size:18px;font-weight:600">Fund ledger</div>
+        <button class="btn btn-p" onclick="openAddFund()">+ Add transaction</button>
+      </div>
+      <div class="panel"><div style="overflow-x:auto">
+        <table class="tbl"><thead><tr><th>Date</th><th>Description</th><th>Category</th><th>Vendor</th><th>Amount</th><th>Drive</th><th>Verified</th></tr></thead>
+        <tbody id="fundsBody"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- TASKS -->
+    <div class="page" id="pg-tasks">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div><div style="font-family:var(--serif);font-size:18px;font-weight:600">Task dispatch</div>
+        <div style="font-size:12px;color:var(--t3);margin-top:2px">Assign tasks to verified volunteers. Rate completed tasks to build their profile.</div></div>
+        <button class="btn btn-p" onclick="openTaskModal()">+ Create task</button>
+      </div>
+      <div class="panel"><div style="overflow-x:auto">
+        <table class="tbl"><thead><tr><th>Title</th><th>Type</th><th>Volunteer</th><th>Priority</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead>
+        <tbody id="tasksBody"><tr><td colspan="7" class="empty">Loading...</td></tr></tbody></table>
+      </div></div>
+    </div>
+
+    <!-- FRAUD -->
+    <div class="page" id="pg-fraud">
+      <div style="font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:14px">Fraud alerts</div>
+      <div class="panel"><div class="pb" id="fraudBody"><div class="skel" style="height:100px"></div></div></div>
+    </div>
+
+    <!-- AUDIT -->
+    <div class="page" id="pg-audit">
+      <div style="font-family:var(--serif);font-size:18px;font-weight:600;margin-bottom:4px">Audit log</div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:14px">Append-only. Every action is recorded. No delete permission even for admin.</div>
+      <div class="panel"><div style="overflow-x:auto">
+        <table class="tbl"><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Resource</th><th>IP</th></tr></thead>
+        <tbody id="auditBody"><tr><td colspan="5" class="empty">Loading...</td></tr></tbody></table>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal"><div id="mBody"></div></div>
+</div>
+
+<script>
+// In your HTML script tags:
+const API = 'http://localhost:4000/api';
+let token=localStorage.getItem('nrfrp_admin_token');
+let aC1,aC2,loginPhase=0;
+let qCache={cases:[],donors:[],vols:[]};
+
+// ── AUTH ──────────────────────────────────────────────────
+function otpNext(el,i){if(el.value){const ins=document.querySelectorAll('.otp-i');if(ins[i+1])ins[i+1].focus()}}
+async function loginStep(){
+  const phone=document.getElementById('lPhone').value.trim();
+  if(!phone){showErr('Enter phone number');return}
+  if(loginPhase===0){
+    const r=await fetch(API+'/auth/otp/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+    if(r.success){
+      loginPhase=1;
+      document.getElementById('otpBlock').style.display='block';
+      document.getElementById('loginBtn').textContent='Verify & login';
+      toast('OTP sent · Dev: 123456');
+    } else showErr(r.error||'Request failed');
+  } else {
+    const otp=Array.from(document.querySelectorAll('.otp-i')).map(i=>i.value).join('');
+    if(otp.length<6){showErr('Enter 6-digit OTP');return}
+    const r=await fetch(API+'/auth/otp/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,otp,role:'admin'})}).then(x=>x.json()).catch(()=>({error:'Network error'}));
+    if(r.token){
+      if(r.user?.role!=='admin'){showErr('Not an admin account');return}
+      token=r.token;localStorage.setItem('nrfrp_admin_token',token);
+      document.getElementById('login').style.display='none';
+      document.getElementById('shell').classList.add('vis');
+      document.getElementById('sbEmail').textContent=r.user.email||phone;
+      document.getElementById('sbAv').textContent=(r.user.email||phone).substring(0,2).toUpperCase();
+      initCharts();loadDashboard();initWS();
+      toast('Welcome, Admin!','success');
+    } else showErr(r.error||'Login failed');
+  }
+}
+function showErr(msg){const e=document.getElementById('loginErr');e.textContent=msg;e.style.display='block'}
+function logout(){localStorage.removeItem('nrfrp_admin_token');location.reload()}
+
+// ── NAV ───────────────────────────────────────────────────
+const TITLES={dashboard:'Dashboard — live overview',cases:'Needy cases',donors:'Donor accounts',volunteers:'Volunteers',drives:'Drives & campaigns',notices:'Notices',funds:'Fund ledger',tasks:'Task dispatch',fraud:'Fraud alerts',audit:'Audit log'};
+function go(page,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  const pg=document.getElementById('pg-'+page);if(pg)pg.classList.add('on');
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('on'));
+  if(el)el.classList.add('on');
+  else{const f=document.querySelector(`.sb-item[onclick*="'${page}'"]`);if(f)f.classList.add('on')}
+  document.getElementById('tbTitle').textContent=TITLES[page]||page;
+  ({cases:loadCases,donors:loadDonors,volunteers:loadVols,drives:loadDrives,notices:loadNotices,funds:loadFunds,tasks:loadTasks,fraud:loadFraud,audit:loadAudit}[page]||function(){})();
+}
+
+// ── API ───────────────────────────────────────────────────
+const H=()=>({'Content-Type':'application/json','Authorization':'Bearer '+token});
+async function apiGet(p){
+  const r=await fetch(API+p,{headers:H()});
+  if(r.status===401){logout();return{}}
+  return r.json().catch(()=>({}));
+}
+async function apiPost(p,b){const r=await fetch(API+p,{method:'POST',headers:H(),body:JSON.stringify(b)});return r.json().catch(()=>({}))}
+async function apiPatch(p,b){const r=await fetch(API+p,{method:'PATCH',headers:H(),body:JSON.stringify(b)});return r.json().catch(()=>({}))}
+
+const fmt=n=>{n=parseFloat(n)||0;if(n>=100000)return'₹'+(n/100000).toFixed(1)+'L';if(n>=1000)return'₹'+(n/1000).toFixed(1)+'K';return'₹'+Math.round(n).toLocaleString('en-IN')};
+const ago=d=>{if(!d)return'';const m=Math.floor((Date.now()-new Date(d))/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago'};
+const fd=d=>{if(!d)return'';return new Date(d).toLocaleString('en-IN',{day:'numeric',month:'short',year:'2-digit'})};
+function toast(msg,type=''){const c=document.getElementById('toasts');const t=document.createElement('div');t.className='toast '+(type||'');t.textContent=msg;c.appendChild(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300)},4500)}
+
+// ── DASHBOARD ─────────────────────────────────────────────
+async function loadDashboard(){
+  const d=await apiGet('/admin/dashboard');
+  const s=d.stats||{};const p=d.pending||{};
+  document.getElementById('d-donated').textContent=fmt(s.total_donated);
+  document.getElementById('d-disbursed').textContent=fmt(s.total_disbursed);
+  document.getElementById('d-cases').textContent=parseInt(s.active_cases)||0;
+  document.getElementById('d-vols').textContent=parseInt(s.active_volunteers)||0;
+  document.getElementById('d-helped').textContent=(parseInt(s.people_helped)||0).toLocaleString('en-IN');
+  document.getElementById('d-drives').textContent=parseInt(s.active_drives)||0;
+  const tot=(parseInt(p.donors)||0)+(parseInt(p.cases)||0)+(parseInt(p.volunteers)||0);
+  document.getElementById('d-approvals').textContent=tot;
+  document.getElementById('d-fraud-ct').textContent=parseInt(p.fraud_flags)||0;
+  document.getElementById('d-pend-lbl').textContent=(parseInt(s.pending_cases)||0)+' pending';
+  const bc=String(parseInt(p.cases)||0),bd=String(parseInt(p.donors)||0),bv=String(parseInt(p.volunteers)||0),bf=String(parseInt(p.fraud_flags)||0);
+  document.getElementById('b-cases').textContent=bc;
+  document.getElementById('b-donors').textContent=bd;
+  document.getElementById('b-vols').textContent=bv;
+  document.getElementById('b-fraud').textContent=bf;
+  updateCharts(d);
+  loadQueueCases();loadDashFunds();
+  loadDashFraud(d.fraudAlerts||[]);
+  loadDashNotices();
+}
+function updateCharts(d){
+  const m=d.monthly||[];
+  if(aC1&&m.length){
+    aC1.data.labels=m.map(x=>new Date(x.month).toLocaleString('default',{month:'short'}));
+    aC1.data.datasets[0].data=m.map(x=>parseFloat(x.money_raised)||0);
+    aC1.update();
+  }
+  const cats=d.fundsByCategory||[];
+  const colors=['#00C27B','#4A90E2','#F0A030','#E55353','#9B72E8','#666'];
+  if(cats.length){
+    if(aC2){
+      aC2.data.labels=cats.map(c=>c.category);
+      aC2.data.datasets[0].data=cats.map(c=>parseFloat(c.total)||0);
+      aC2.data.datasets[0].backgroundColor=colors;
+      aC2.update();
+    }
+    document.getElementById('allocLeg').innerHTML=cats.map((c,i)=>`<span><span class="ld2" style="background:${colors[i%colors.length]}"></span>${c.category}</span>`).join('');
+  } else {
+    document.getElementById('allocLeg').innerHTML='<span style="color:var(--t3);font-size:11px">No fund transactions yet</span>';
+  }
+}
+
+// ── QUEUE ─────────────────────────────────────────────────
+async function loadQueueCases(){
+  const d=await apiGet('/admin/cases?status=pending&limit=5');
+  qCache.cases=d.cases||[];renderQueue('cases');
+}
+async function loadQueueDonors(){
+  const d=await apiGet('/admin/users?role=donor&status=pending&limit=5');
+  qCache.donors=d.users||[];renderQueue('donors');
+}
+async function loadQueueVols(){
+  const d=await apiGet('/admin/users?role=volunteer&status=pending&limit=5');
+  qCache.vols=d.users||[];renderQueue('vols');
+}
+function qTab(type,btn){
+  document.querySelectorAll('.ptab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');
+  if(type==='cases')loadQueueCases();
+  else if(type==='donors')loadQueueDonors();
+  else loadQueueVols();
+}
+function renderQueue(type){
+  const el=document.getElementById('qBody');if(!el)return;
+  const uc={critical:'b-crit',high:'b-high',normal:'b-norm'};
+  if(type==='cases'){
+    if(!qCache.cases.length){el.innerHTML='<div class="empty">No pending cases.</div>';return}
+    el.innerHTML=qCache.cases.map(c=>`<div class="qi">
+      <div class="qi-l">
+        <div class="qi-n">${c.type?.replace(/_/g,' ')||'—'} <span class="badge ${uc[c.urgency]||'b-norm'}">${c.urgency}</span></div>
+        <div class="qi-s">${c.district||'—'} · ${ago(c.created_at)}${c.id_doc_s3_key?'<span style="color:var(--b);margin-left:6px">● Docs uploaded</span>':''}</div>
+      </div>
+      <div class="qi-a">
+        <button class="btn btn-info" onclick="viewCaseProof('${c.id}')">View proof</button>
+        <button class="btn btn-ok" onclick="approveCase('${c.id}',this)">Approve</button>
+        <button class="btn btn-no" onclick="rejectCase('${c.id}',this)">Reject</button>
+      </div>
+    </div>`).join('');
+  } else if(type==='donors'){
+    if(!qCache.donors.length){el.innerHTML='<div class="empty">No pending donors.</div>';return}
+    el.innerHTML=qCache.donors.map(u=>`<div class="qi"><div class="qi-l"><div class="qi-n">${u.email||'—'}</div><div class="qi-s">Donor · ${ago(u.created_at)}</div></div><div class="qi-a"><button class="btn btn-ok" onclick="approveUser('${u.id}',this)">Approve</button><button class="btn btn-no" onclick="rejectUser('${u.id}',this)">Reject</button></div></div>`).join('');
+  } else {
+    if(!qCache.vols.length){el.innerHTML='<div class="empty">No pending volunteers.</div>';return}
+    el.innerHTML=qCache.vols.map(u=>`<div class="qi"><div class="qi-l"><div class="qi-n">${u.email||'—'}</div><div class="qi-s">Volunteer · ${ago(u.created_at)}</div></div><div class="qi-a"><button class="btn btn-ok" onclick="approveUser('${u.id}',this)">Approve</button><button class="btn btn-no" onclick="rejectUser('${u.id}',this)">Reject</button></div></div>`).join('');
+  }
+}
+
+// ── PROOF VIEWER (admin only — audited) ───────────────────
+async function viewCaseProof(caseId){
+  openModal('<div style="text-align:center;padding:24px;color:var(--t2)">Loading case details...</div>');
+  const d=await apiGet('/admin/cases/'+caseId);
+  if(d.error){openModal(`<h3>Error</h3><p style="color:var(--r)">${d.error}</p><div class="mfoot"><button class="btn btn-g" onclick="closeModal()">Close</button></div>`);return}
+  const c=d.case||{};const urls=d.proofUrls||{};
+  const hasProof=!!(urls.id_doc||(urls.evidence?.length)||urls.volunteer_report);
+  let html=`<h3>Case verification</h3>
+  <div class="proof-warn">⚠ This view is audit-logged. Proof access records your user ID, IP address, and timestamp. Only view when you intend to make a decision.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:13px;font-size:12px;line-height:2;background:var(--bg3);border-radius:8px;padding:11px 13px">
+    <div><strong style="color:var(--t)">Type:</strong> ${c.type?.replace(/_/g,' ')||'—'}<br><strong style="color:var(--t)">Urgency:</strong> ${c.urgency||'—'}<br><strong style="color:var(--t)">Status:</strong> ${c.status||'—'}</div>
+    <div><strong style="color:var(--t)">District:</strong> ${c.district||'—'}, ${c.state||'—'}<br><strong style="color:var(--t)">Family:</strong> ${c.family_size||1} people<br><strong style="color:var(--t)">Submitted:</strong> ${ago(c.created_at)}</div>
+  </div>
+  <div style="background:var(--bg3);border-radius:8px;padding:11px 13px;margin-bottom:13px;font-size:12px;color:var(--t2)"><strong style="color:var(--t);display:block;margin-bottom:3px">Description</strong>${c.description||'Not provided'}</div>
+  <div style="font-family:var(--serif);font-size:14px;font-weight:600;margin-bottom:10px">Proof documents</div>`;
+
+  if(!hasProof){
+    html+=`<div style="background:var(--aL);border:1px solid rgba(240,160,48,.2);border-radius:8px;padding:12px 13px;font-size:12px;color:var(--a)">
+      ⚠ No proof documents have been uploaded yet by the applicant. You can wait for upload, or reject with a note asking them to provide documents.
+    </div>`;
+  } else {
+    if(urls.id_doc)html+=proofItemHtml('🪪','Identity document','Aadhaar / Voter ID / Passport',urls.id_doc);
+    if(urls.evidence?.length)urls.evidence.forEach((u,i)=>{html+=proofItemHtml('📄','Evidence '+( i+1),'Hospital estimate / prescription / photo',u)});
+    if(urls.volunteer_report)html+=proofItemHtml('📋','Volunteer field report','GPS-verified physical visit report',urls.volunteer_report);
+  }
+  if(c.geo_mismatch)html+=`<div style="background:var(--rL);border:1px solid rgba(229,83,83,.2);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;color:var(--r)">⚠ Geo mismatch: GPS coordinates are >50km from the ID document address. Investigate carefully before approving.</div>`;
+  if(c.fraud_flags?.length)html+=`<div style="background:var(--rL);border:1px solid rgba(229,83,83,.2);border-radius:8px;padding:10px 12px;margin-top:8px;font-size:12px;color:var(--r)">🚨 Fraud flags: ${c.fraud_flags.join(', ')}</div>`;
+  html+=`<div style="margin-top:16px">
+    <div style="font-family:var(--serif);font-size:14px;font-weight:600;margin-bottom:10px">Take action on this case</div>
+    <div class="fr"><label class="fl">Set urgency tier</label>
+      <select class="fi fi-sel" id="aUrg"><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select>
+    </div>
+    <div class="fr"><label class="fl">Approved help types (select all applicable)</label>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:5px">
+        ${['food','medical','shelter','clothes','funds','transport'].map(t=>`<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;background:var(--bg3);padding:5px 10px;border-radius:6px;border:1px solid var(--bd)"><input type="checkbox" value="${t}" style="accent-color:var(--g)"> ${t}</label>`).join('')}
+      </div>
+    </div>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-g" onclick="closeModal()">Close</button>
+    <button class="btn btn-no" onclick="rejectCase('${c.id}',null);closeModal()">Reject case</button>
+    <button class="btn btn-ok btn-lg" onclick="approveCaseFromModal('${c.id}')">✓ Approve case</button>
+  </div>`;
+  openModal(html);
+}
+function proofItemHtml(icon,name,sub,urlPath){
+  return`<div class="proof-wrap">
+    <div style="display:flex;align-items:center;gap:10px;flex:1">
+      <span style="font-size:20px">${icon}</span>
+      <div><div style="font-size:12px;font-weight:500;color:var(--t)">${name}</div><div style="font-size:11px;color:var(--t2)">${sub}</div></div>
+    </div>
+    ${urlPath?`<button class="btn btn-info" onclick="openProofDoc('${urlPath}','${name}')">View document</button>`:'<span style="font-size:11px;color:var(--t3)">Not yet uploaded</span>'}
+  </div>`;
+}
+async function openProofDoc(urlPath,name){
+  toast('Loading document...');
+  const d=await apiGet(urlPath.replace('/api',''));
+  if(d.dev_mode){toast('Dev mode: S3 not configured. Document would appear here in production.','warn');return}
+  if(d.url){window.open(d.url,'_blank');}
+  else toast('Could not load document: '+(d.error||'Unknown error'),'error');
+}
+async function approveCaseFromModal(id){
+  const urg=document.getElementById('aUrg').value;
+  const helps=Array.from(document.querySelectorAll('#mBody input[type=checkbox]:checked')).map(c=>c.value);
+  if(!helps.length){toast('Select at least one help type','error');return}
+  await approveCase(id,null,urg,helps);
+  closeModal();
+}
+
+// ── CASE / USER ACTIONS ───────────────────────────────────
+async function approveCase(id,btn,urg='normal',helps=['food','medical']){
+  if(btn){btn.disabled=true;btn.textContent='...'}
+  const r=await apiPatch('/admin/cases/'+id+'/approve',{urgency:urg,help_types:helps,expires_days:90});
+  if(r.case){
+    toast('Case approved!','success');
+    qCache.cases=qCache.cases.filter(c=>c.id!==id);
+    renderQueue('cases');loadDashboard();loadCases();
+  } else toast(r.error||'Failed','error');
+}
+async function rejectCase(id,btn){
+  if(btn){btn.disabled=true}
+  const reason=prompt('Reason for rejection (optional):')||'Admin rejected';
+  const r=await apiPatch('/admin/cases/'+id+'/reject',{reason});
+  if(r.success){
+    toast('Case rejected');
+    qCache.cases=qCache.cases.filter(c=>c.id!==id);
+    renderQueue('cases');loadDashboard();loadCases();
+  }
+}
+async function approveUser(id,btn){
+  if(btn){btn.disabled=true;btn.textContent='...'}
+  await apiPatch('/admin/users/'+id+'/status',{status:'active'});
+  toast('User approved!','success');
+  qCache.donors=qCache.donors.filter(u=>u.id!==id);
+  qCache.vols=qCache.vols.filter(u=>u.id!==id);
+  loadDashboard();
+}
+async function rejectUser(id,btn){
+  if(btn){btn.disabled=true}
+  await apiPatch('/admin/users/'+id+'/status',{status:'suspended'});
+  toast('User rejected');
+  qCache.donors=qCache.donors.filter(u=>u.id!==id);
+  qCache.vols=qCache.vols.filter(u=>u.id!==id);
+  loadDashboard();
+}
+
+// ── DASH PANELS ───────────────────────────────────────────
+async function loadDashFunds(){
+  const d=await apiGet('/admin/funds');
+  const el=document.getElementById('dashFunds');if(!el)return;
+  const txs=(d.transactions||[]).slice(0,5);
+  if(!txs.length){el.innerHTML='<div class="empty">No fund transactions yet.<br><button class="btn btn-p" style="margin-top:8px" onclick="openAddFund()">+ Add first transaction</button></div>';return}
+  const ico={food:'🥘',medicine:'💊',transport:'🚗',shelter:'🏠',clothes:'👕',other:'📦'};
+  const ibg={food:'rgba(0,194,123,.1)',medicine:'rgba(74,144,226,.1)',transport:'rgba(240,160,48,.1)',shelter:'rgba(229,83,83,.1)'};
+  el.innerHTML=txs.map(t=>{const a=parseFloat(t.amount)||0;const fa=a>=100000?'₹'+(a/100000).toFixed(1)+'L':a>=1000?'₹'+(a/1000).toFixed(1)+'K':'₹'+a.toLocaleString('en-IN');
+    return`<div class="lr"><div class="ll"><div class="li" style="background:${ibg[t.category]||'var(--bg4)'}">${ico[t.category]||'📦'}</div><div><div class="ldate">${ago(t.created_at)}</div><div class="lname">${t.description||'Transaction'}</div><div class="lsub">${t.vendor_name||''}</div></div></div><div class="lr-r"><div class="la">${fa}</div><div class="lp">${t.is_verified?'✓ Verified':''}</div></div></div>`;
+  }).join('');
+}
+async function loadDashFraud(alerts){
+  const el=document.getElementById('dashFraud');if(!el)return;
+  if(!alerts.length){el.innerHTML='<div class="empty">No active fraud flags.</div>';return}
+  el.innerHTML=alerts.slice(0,4).map(a=>`<div class="fr-row"><div class="fr-ic">⚠</div><div style="flex:1"><div class="fr-n">${a.fraud_flags?.join(', ')||'Flagged'}</div><div class="fr-d">${a.type?.replace(/_/g,' ')||''} · ${a.district||''} · ${ago(a.created_at)}</div></div><div style="display:flex;gap:5px"><button class="btn btn-info" style="font-size:11px" onclick="viewCaseProof('${a.id}')">Review</button></div></div>`).join('');
+}
+async function loadDashNotices(){
+  const d=await apiGet('/admin/notices');
+  const el=document.getElementById('dashNotices');if(!el)return;
+  const notices=(d.notices||[]).slice(0,4);
+  if(!notices.length){el.innerHTML='<div class="empty">No notices yet.<br><button class="btn btn-p" style="margin-top:8px" onclick="openNoticeModal()">+ Publish first notice</button></div>';return}
+  const tc={urgent:'var(--r)',active:'var(--g)',completed:'var(--t3)'};
+  el.innerHTML=notices.map(n=>`<div class="qi"><div class="qi-l"><div class="qi-n" style="color:${tc[n.urgency_level]||'var(--g)'}">${n.title}</div><div class="qi-s">${n.area||''} · ${n.is_published?'Published':'Draft'}</div></div><button class="btn btn-g" style="font-size:11px" onclick="togglePublish('${n.id}',${!n.is_published})">${n.is_published?'Unpublish':'Publish'}</button></div>`).join('');
+}
+
+// ── FULL PAGE TABLES ──────────────────────────────────────
+async function loadCases(){
+  const s=document.getElementById('cSF')?.value||'';
+  const u=document.getElementById('cUF')?.value||'';
+  const d=await apiGet(`/admin/cases?status=${s}&urgency=${u}`);
+  const uc={critical:'b-crit',high:'b-high',normal:'b-norm'};
+  document.getElementById('casesBody').innerHTML=(d.cases||[]).length?
+    (d.cases||[]).map(c=>`<tr>
+      <td>${c.type?.replace(/_/g,' ')||'—'}</td>
+      <td><span class="badge ${uc[c.urgency]||'b-norm'}">${c.urgency}</span></td>
+      <td>${c.district||'—'}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(c.help_types||[]).join(', ')||'—'}</td>
+      <td>${c.id_doc_s3_key?'<span style="color:var(--b);font-size:11px;font-weight:600">● Docs ready</span>':'<span style="color:var(--t3);font-size:11px">None uploaded</span>'}</td>
+      <td><span class="badge ${c.status==='active'?'b-norm':'b-pend'}">${c.status}</span></td>
+      <td style="color:var(--t3);font-size:11px">${ago(c.created_at)}</td>
+      <td><div style="display:flex;gap:4px">
+        <button class="btn btn-info" style="font-size:11px" onclick="viewCaseProof('${c.id}')">View proof</button>
+        ${c.status==='pending'?`<button class="btn btn-ok" style="font-size:11px" onclick="approveCase('${c.id}',this)">Approve</button><button class="btn btn-no" style="font-size:11px" onclick="rejectCase('${c.id}',this)">Reject</button>`:''}
+      </div></td>
+    </tr>`).join(''):
+    '<tr><td colspan="8" class="empty">No cases found.</td></tr>';
+}
+async function loadDonors(){
+  const d=await apiGet('/admin/users?role=donor');
+  document.getElementById('donorsBody').innerHTML=(d.users||[]).length?
+    (d.users||[]).map(u=>`<tr><td>${u.email||'—'}</td><td>${u.name||'Individual'}</td><td>—</td><td><span class="badge ${u.status==='active'?'b-norm':'b-pend'}">${u.status}</span></td><td style="font-size:11px;color:var(--t3)">${ago(u.created_at)}</td><td><div style="display:flex;gap:4px">${u.status==='pending'?`<button class="btn btn-ok" style="font-size:11px" onclick="approveUser('${u.id}',this)">Approve</button><button class="btn btn-no" style="font-size:11px" onclick="rejectUser('${u.id}',this)">Reject</button>`:'<span style="font-size:11px;color:var(--t3)">Actioned</span>'}</div></td></tr>`).join(''):
+    '<tr><td colspan="6" class="empty">No donors yet.</td></tr>';
+}
+async function loadVols(){
+  const d=await apiGet('/admin/volunteers');
+  document.getElementById('volsBody').innerHTML=(d.volunteers||[]).length?
+    (d.volunteers||[]).map(v=>`<tr><td>${v.email||'—'}</td><td style="font-size:11px">${(v.skills||[]).slice(0,2).join(', ')||'—'}</td><td>${v.tier||'field'}</td><td>${v.tasks_completed||0}</td><td>${v.rating?parseFloat(v.rating).toFixed(1)+'★':'—'}</td><td><span class="badge ${v.status==='active'?'b-norm':'b-pend'}">${v.status}</span></td><td>${v.status==='pending'?`<button class="btn btn-ok" style="font-size:11px" onclick="approveUser('${v.id}',this)">Approve</button>`:''}</td></tr>`).join(''):
+    '<tr><td colspan="7" class="empty">No volunteers registered yet.</td></tr>';
+}
+async function loadDrives(){
+  const d=await apiGet('/admin/drives');
+  const p=(c,t)=>t>0?Math.min(100,Math.round(c/t*100)):0;
+  document.getElementById('drivesBody').innerHTML=(d.drives||[]).length?
+    (d.drives||[]).map(dr=>{const pct=p(parseFloat(dr.fund_collected||0),parseFloat(dr.fund_target||1));return`<tr>
+      <td style="font-weight:500">${dr.name}</td><td>${dr.type}</td><td>${dr.area||'—'}</td>
+      <td><div style="width:80px;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:2px"><div style="height:100%;background:var(--g);width:${pct}%"></div></div><div style="font-size:10px;color:var(--t3)">${fmt(dr.fund_collected||0)} / ${fmt(dr.fund_target||0)}</div></td>
+      <td>${dr.volunteers_assigned||0}</td>
+      <td><span class="badge ${dr.status==='active'?'b-norm':'b-done'}">${dr.status}</span></td>
+      <td>${dr.status==='active'?`<button class="btn btn-no" style="font-size:11px" onclick="closeDrive('${dr.id}')">Close</button>`:'—'}</td>
+    </tr>`}).join(''):
+    '<tr><td colspan="7" class="empty">No drives yet. Create your first drive.</td></tr>';
+}
+async function loadNotices(){
+  const d=await apiGet('/admin/notices');
+  const tc={urgent:'var(--r)',active:'var(--g)',completed:'var(--t3)'};
+  document.getElementById('noticesBody').innerHTML=(d.notices||[]).length?
+    (d.notices||[]).map(n=>`<tr><td style="font-weight:500">${n.title}</td><td style="color:${tc[n.urgency_level]||'var(--g)'};font-size:12px">${n.urgency_level}</td><td>${n.area||'—'}</td><td>${n.fund_target>0?fmt(n.fund_target):'—'}</td><td>${n.is_published?'<span style="color:var(--g);font-size:11px">Published</span>':'<span style="color:var(--t3);font-size:11px">Draft</span>'}</td><td><button class="btn btn-g" style="font-size:11px" onclick="togglePublish('${n.id}',${!n.is_published})">${n.is_published?'Unpublish':'Publish'}</button></td></tr>`).join(''):
+    '<tr><td colspan="6" class="empty">No notices yet.</td></tr>';
+}
+async function loadFunds(){
+  const d=await apiGet('/admin/funds');
+  document.getElementById('fundsBody').innerHTML=(d.transactions||[]).length?
+    (d.transactions||[]).map(t=>{const a=parseFloat(t.amount)||0;const fa=a>=100000?'₹'+(a/100000).toFixed(1)+'L':a>=1000?'₹'+(a/1000).toFixed(1)+'K':'₹'+a.toLocaleString('en-IN');return`<tr><td style="font-size:11px;color:var(--t3)">${ago(t.created_at)}</td><td>${t.description||'—'}</td><td>${t.category||'—'}</td><td>${t.vendor_name||'—'}</td><td style="font-weight:600">${fa}</td><td style="font-size:11px;color:var(--t3)">${t.drive_name||'—'}</td><td>${t.is_verified?'<span style="color:var(--g);font-size:11px">✓ Verified</span>':'<span style="color:var(--t3);font-size:11px">Pending</span>'}</td></tr>`}).join(''):
+    '<tr><td colspan="7" class="empty">No fund transactions yet.</td></tr>';
+}
+async function loadTasks(){
+  const d=await apiGet('/admin/tasks');
+  document.getElementById('tasksBody').innerHTML=(d.tasks||[]).length?
+    (d.tasks||[]).map(t=>`<tr><td style="font-weight:500">${t.title||t.type}</td><td>${t.type}</td><td>${t.volunteer_name||'<span style="color:var(--t3)">Unassigned</span>'}</td><td><span class="badge ${t.priority==='critical'?'b-crit':t.priority==='high'?'b-high':'b-norm'}">${t.priority||'normal'}</span></td><td><span class="badge ${t.status==='completed'?'b-done':'b-pend'}">${t.status}</span></td><td style="font-size:11px;color:var(--t3)">${ago(t.created_at)}</td><td>${t.status==='proof_uploaded'?`<button class="btn btn-ok" style="font-size:11px" onclick="openRateTask('${t.id}')">Rate & close</button>`:'—'}</td></tr>`).join(''):
+    '<tr><td colspan="7" class="empty">No tasks yet. Create the first task.</td></tr>';
+}
+async function loadFraud(){
+  const d=await apiGet('/admin/cases?limit=50');
+  const flagged=(d.cases||[]).filter(c=>c.fraud_flags?.length||c.geo_mismatch);
+  const el=document.getElementById('fraudBody');if(!el)return;
+  if(!flagged.length){el.innerHTML='<div class="empty">No active fraud flags. All cases appear legitimate.</div>';return}
+  el.innerHTML=flagged.map(a=>`<div class="fr-row"><div class="fr-ic">⚠</div><div style="flex:1"><div class="fr-n">${a.fraud_flags?.join(', ')||'Geo mismatch'}</div><div class="fr-d">${a.type?.replace(/_/g,' ')||''} · ${a.district||''} · ${ago(a.created_at)}</div></div><div style="display:flex;gap:5px"><button class="btn btn-info" style="font-size:11px" onclick="viewCaseProof('${a.id}')">Review</button><button class="btn btn-no" style="font-size:11px" onclick="rejectCase('${a.id}',null)">Reject</button></div></div>`).join('');
+}
+async function loadAudit(){
+  const d=await apiGet('/admin/audit?limit=50');
+  document.getElementById('auditBody').innerHTML=(d.logs||[]).length?
+    (d.logs||[]).map(l=>`<tr><td style="font-size:11px;white-space:nowrap">${new Date(l.created_at).toLocaleString('en-IN')}</td><td style="font-size:11px">${l.user_email||'—'}</td><td style="font-family:monospace;font-size:11px">${l.action}</td><td style="font-size:11px">${l.resource_type||'—'}</td><td style="font-size:11px;color:var(--t3)">${l.ip_address||'—'}</td></tr>`).join(''):
+    '<tr><td colspan="5" class="empty">No audit entries yet.</td></tr>';
+}
+
+// ── MODALS ────────────────────────────────────────────────
+function openModal(html){document.getElementById('mBody').innerHTML=html;document.getElementById('modalBg').classList.add('open')}
+function closeModal(){document.getElementById('modalBg').classList.remove('open')}
+
+function openAddFund(){
+  openModal(`<h3>Add fund transaction</h3>
+  <div class="fr"><label class="fl">Amount (₹) *</label><input class="fi" id="fAmt" type="number" placeholder="5000" min="1"></div>
+  <div class="fr"><label class="fl">Description *</label><input class="fi" id="fDesc" placeholder="e.g. Groceries — 400 servings, Dal Rice"></div>
+  <div class="fr2">
+    <div><label class="fl">Category</label><select class="fi fi-sel" id="fCat"><option>food</option><option>medicine</option><option>transport</option><option>shelter</option><option>clothes</option><option>equipment</option><option>other</option></select></div>
+    <div><label class="fl">Vendor name</label><input class="fi" id="fVen" placeholder="Shop / vendor name"></div>
+  </div>
+  <div class="mfoot"><button class="btn btn-g" onclick="closeModal()">Cancel</button><button class="btn btn-p" onclick="submitFund()">Add verified transaction</button></div>`);
+}
+async function submitFund(){
+  const amt=parseFloat(document.getElementById('fAmt')?.value)||0;
+  const desc=document.getElementById('fDesc')?.value?.trim();
+  if(!amt||!desc){toast('Fill required fields','error');return}
+  const r=await apiPost('/admin/funds',{amount:amt,description:desc,category:document.getElementById('fCat')?.value,vendor_name:document.getElementById('fVen')?.value||''});
+  if(r.transaction){closeModal();toast('Transaction added!','success');loadDashFunds();loadFunds();loadDashboard();}
+  else toast(r.error||'Failed','error');
+}
+function openDriveModal(){
+  openModal(`<h3>Create drive</h3>
+  <div class="fr"><label class="fl">Drive name *</label><input class="fi" id="dN" placeholder="e.g. Winter Clothes Drive — Delhi NCR"></div>
+  <div class="fr2"><div><label class="fl">Type</label><select class="fi fi-sel" id="dT"><option>food</option><option>medical</option><option>clothing</option><option>shelter</option><option>skill_camp</option><option>disaster</option></select></div><div><label class="fl">Area</label><input class="fi" id="dA" placeholder="Delhi NCR"></div></div>
+  <div class="fr"><label class="fl">Description</label><textarea class="fi fi-ta" id="dD" placeholder="Drive purpose and details..."></textarea></div>
+  <div class="fr2"><div><label class="fl">Fund target (₹)</label><input class="fi" id="dFT" type="number" placeholder="100000"></div><div><label class="fl">Volunteer slots</label><input class="fi" id="dVS" type="number" placeholder="10"></div></div>
+  <div class="fr2"><div><label class="fl">Start date</label><input class="fi" id="dSD" type="date"></div><div><label class="fl">End date</label><input class="fi" id="dED" type="date"></div></div>
+  <div class="mfoot"><button class="btn btn-g" onclick="closeModal()">Cancel</button><button class="btn btn-p" onclick="submitDrive()">Create drive</button></div>`);
+}
+async function submitDrive(){
+  const name=document.getElementById('dN')?.value?.trim();
+  if(!name){toast('Drive name required','error');return}
+  const r=await apiPost('/admin/drives',{name,type:document.getElementById('dT')?.value,description:document.getElementById('dD')?.value,area:document.getElementById('dA')?.value,fund_target:parseFloat(document.getElementById('dFT')?.value)||0,volunteer_slots:parseInt(document.getElementById('dVS')?.value)||0,start_date:document.getElementById('dSD')?.value||null,end_date:document.getElementById('dED')?.value||null,radius_km:20});
+  if(r.drive){closeModal();toast('Drive created!','success');loadDrives();loadDashboard();}
+  else toast(r.error||'Failed','error');
+}
+async function closeDrive(id){
+  const n=prompt('Number of beneficiaries reached:','0');if(n===null)return;
+  await apiPatch('/admin/drives/'+id+'/close',{beneficiaries_count:parseInt(n)||0});
+  toast('Drive closed!','success');loadDrives();loadDashboard();
+}
+function openNoticeModal(){
+  openModal(`<h3>Publish notice</h3>
+  <div class="fr"><label class="fl">Title *</label><input class="fi" id="nTi" placeholder="e.g. Medical aid needed — 12 TB patients, Dharavi"></div>
+  <div class="fr"><label class="fl">Description</label><textarea class="fi fi-ta" id="nDe" placeholder="Describe the situation and what help is needed..."></textarea></div>
+  <div class="fr2"><div><label class="fl">Urgency level</label><select class="fi fi-sel" id="nUr"><option value="urgent">Urgent</option><option value="active">Active</option><option value="completed">Completed</option></select></div><div><label class="fl">Area</label><input class="fi" id="nAr" placeholder="e.g. Mumbai, Dharavi"></div></div>
+  <div class="fr"><label class="fl">Fund target (₹, optional)</label><input class="fi" id="nFT" type="number" placeholder="0"></div>
+  <div class="mfoot"><button class="btn btn-g" onclick="closeModal()">Cancel</button><button class="btn btn-p" onclick="submitNotice()">Publish notice</button></div>`);
+}
+async function submitNotice(){
+  const title=document.getElementById('nTi')?.value?.trim();
+  if(!title){toast('Title required','error');return}
+  const r=await apiPost('/admin/notices',{title,description:document.getElementById('nDe')?.value,urgency_level:document.getElementById('nUr')?.value,area:document.getElementById('nAr')?.value,fund_target:parseFloat(document.getElementById('nFT')?.value)||0});
+  if(r.notice){closeModal();toast('Notice published!','success');loadDashNotices();loadNotices();}
+  else toast(r.error||'Failed','error');
+}
+async function togglePublish(id,val){
+  await apiPatch('/admin/notices/'+id,{is_published:val});
+  toast(val?'Notice published':'Notice unpublished');
+  loadDashNotices();loadNotices();
+}
+function openTaskModal(){
+  openModal(`<h3>Create & assign task</h3>
+  <div class="fr"><label class="fl">Task title *</label><input class="fi" id="tTi" placeholder="e.g. Deliver food packages to 10 families in Dharavi"></div>
+  <div class="fr2"><div><label class="fl">Task type</label><select class="fi fi-sel" id="tTy"><option>delivery</option><option>verification</option><option>pickup</option><option>medical_visit</option><option>transport</option><option>other</option></select></div><div><label class="fl">Priority</label><select class="fi fi-sel" id="tPr"><option value="normal">Normal</option><option value="high">High</option><option value="critical">Critical</option></select></div></div>
+  <div class="fr"><label class="fl">Description / instructions</label><textarea class="fi fi-ta" id="tDe" placeholder="Instructions for the volunteer..."></textarea></div>
+  <div class="fr2"><div><label class="fl">Pickup address</label><input class="fi" id="tPA" placeholder="Where to pick up from"></div><div><label class="fl">Delivery address</label><input class="fi" id="tDA" placeholder="Where to deliver to"></div></div>
+  <div class="fr"><label class="fl">Assign to volunteer (user ID, optional)</label><input class="fi" id="tVol" placeholder="Volunteer user ID — leave empty to post as open task"></div>
+  <div class="fr"><label class="fl">Deadline (optional)</label><input class="fi" id="tDL" type="datetime-local"></div>
+  <div class="mfoot"><button class="btn btn-g" onclick="closeModal()">Cancel</button><button class="btn btn-p" onclick="submitTask()">Create task</button></div>`);
+}
+async function submitTask(){
+  const title=document.getElementById('tTi')?.value?.trim();
+  if(!title){toast('Title required','error');return}
+  const r=await apiPost('/admin/tasks',{title,type:document.getElementById('tTy')?.value,priority:document.getElementById('tPr')?.value,description:document.getElementById('tDe')?.value,pickup_address:document.getElementById('tPA')?.value||null,delivery_address:document.getElementById('tDA')?.value||null,volunteer_id:document.getElementById('tVol')?.value?.trim()||null,deadline:document.getElementById('tDL')?.value||null});
+  if(r.task){closeModal();toast('Task created!','success');loadTasks();}
+  else toast(r.error||'Failed','error');
+}
+function openRateTask(id){
+  openModal(`<h3>Rate completed task</h3>
+  <div class="fr"><label class="fl">Volunteer rating (1–5)</label><select class="fi fi-sel" id="tRate"><option value="5">5 — Excellent</option><option value="4">4 — Good</option><option value="3">3 — Average</option><option value="2">2 — Below average</option><option value="1">1 — Poor</option></select></div>
+  <div class="fr"><label class="fl">Notes for volunteer (optional)</label><textarea class="fi fi-ta" id="tNotes" placeholder="Feedback about task performance..."></textarea></div>
+  <div class="mfoot"><button class="btn btn-g" onclick="closeModal()">Cancel</button><button class="btn btn-p" onclick="submitRating('${id}')">Submit & close task</button></div>`);
+}
+async function submitRating(id){
+  const r=await apiPatch('/admin/tasks/'+id+'/rate',{rating:parseInt(document.getElementById('tRate')?.value)||5,notes:document.getElementById('tNotes')?.value||null});
+  if(r.task){closeModal();toast('Task rated and closed!','success');loadTasks();}
+  else toast(r.error||'Failed','error');
+}
+
+// ── CHARTS ────────────────────────────────────────────────
+function initCharts(){
+  const base={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+  aC1=new Chart(document.getElementById('aC1'),{type:'bar',data:{labels:[],datasets:[{data:[],backgroundColor:'rgba(0,194,123,.7)',borderRadius:4}]},options:{...base,scales:{y:{ticks:{callback:v=>v>=100000?'₹'+(v/100000).toFixed(0)+'L':v>=1000?'₹'+(v/1000).toFixed(0)+'K':'₹'+v,font:{size:10},color:'#4A5268'},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{font:{size:10},color:'#4A5268'},grid:{display:false}}}}});
+  aC2=new Chart(document.getElementById('aC2'),{type:'doughnut',data:{labels:[],datasets:[{data:[1],backgroundColor:['#2E3340'],borderWidth:0}]},options:{...base,cutout:'62%'}});
+}
+
+// ── WEBSOCKET ─────────────────────────────────────────────
+function initWS(){
+  const sock=io(window.location.origin,{auth:{token},transports:['websocket','polling']});
+  sock.on('connect',()=>document.querySelector('.chip.live').style.borderColor='var(--g)');
+  sock.on('stats:update',()=>loadDashboard());
+  sock.on('case:update',d=>{toast(`📋 Case ${d.type}`,'warn');qCache.cases=[];loadDashboard()});
+  sock.on('admin:alert',d=>{toast(`⚠ Alert: ${d.type}`);loadDashboard()});
+  sock.on('fund:new',()=>{loadDashFunds();loadFunds()});
+  sock.on('drive:update',()=>loadDrives());
+  sock.on('notice:new',()=>{loadDashNotices();loadNotices()});
+  sock.on('donation:new',d=>{if(d.amount)toast('💚 Donation: ₹'+parseFloat(d.amount).toLocaleString('en-IN'));setTimeout(loadDashboard,400)});
+  sock.on('task:update',d=>{if(d.type==='completed')toast('✅ Task completed by volunteer');loadTasks()});
+}
+
+// ── BOOT ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded',()=>{
+  if(token){
+    apiGet('/admin/dashboard').then(d=>{
+      if(!d.stats&&!d.error){logout();return}
+      document.getElementById('login').style.display='none';
+      document.getElementById('shell').classList.add('vis');
+      initCharts();loadDashboard();initWS();
+    }).catch(logout);
+  }
+  document.getElementById('lPhone').addEventListener('keydown',e=>{if(e.key==='Enter')loginStep()});
+  document.querySelectorAll('.otp-i').forEach(i=>i.addEventListener('keydown',e=>{if(e.key==='Enter')loginStep()}));
+});
+</script>
+</body>
+</html>

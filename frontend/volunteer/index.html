@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>NRFRP — Volunteer Portal</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0E1117;--bg2:#141820;--bg3:#1A1F2E;--bg4:#212840;--bg5:#293050;
+  --t:#E2E8F8;--t2:#8899BB;--t3:#4A5580;--bd:#1E2540;--bdL:#262E4A;
+  --pu:#7B5CF0;--puL:rgba(123,92,240,.12);--puG:rgba(123,92,240,.06);
+  --g:#10B67A;--gL:rgba(16,182,122,.12);--r:#E05050;--rL:rgba(224,80,80,.12);
+  --a:#D09020;--aL:rgba(208,144,32,.12);--b:#3D85E0;--bL:rgba(61,133,224,.12);
+  --sb:235px;--top:50px;--r2:10px;--rL2:14px;--font:'Space Grotesk',sans-serif;--mono:'Space Mono',monospace;
+  --tr:.16s ease;--sh:0 2px 16px rgba(0,0,0,.4)}
+body{font-family:var(--font);background:var(--bg);color:var(--t);min-height:100vh;font-size:14px;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:3px}
+#shell{display:none;min-height:100vh}#shell.vis{display:flex}
+#sb{width:var(--sb);background:var(--bg2);border-right:1px solid var(--bd);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:50;overflow-y:auto}
+#main{margin-left:var(--sb);flex:1;min-height:100vh;display:flex;flex-direction:column}
+.sb-brand{padding:14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px;min-height:var(--top)}
+.sb-lm{width:30px;height:30px;background:var(--pu);border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-lm svg{width:15px;height:15px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.sb-n{font-size:13px;font-weight:700;color:var(--t)}.sb-s{font-size:10px;color:var(--t3)}
+.sb-sec{font-size:10px;font-weight:700;color:var(--t3);padding:13px 14px 4px;letter-spacing:.12em;text-transform:uppercase}
+.sb-item{display:flex;align-items:center;gap:8px;padding:8px 14px;cursor:pointer;font-size:13px;color:var(--t2);border-left:2px solid transparent;transition:var(--tr)}
+.sb-item:hover{background:var(--bg3);color:var(--t)}
+.sb-item.on{background:var(--puG);color:var(--pu);border-left-color:var(--pu);font-weight:600}
+.sb-item svg{width:14px;height:14px;flex-shrink:0}
+.sb-badge{margin-left:auto;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center}
+.sb-badge.g{background:var(--g);color:#fff}.sb-badge.a{background:var(--a);color:#1a1000}
+.sb-foot{padding:12px 14px;border-top:1px solid var(--bd);margin-top:auto}
+.sb-av{width:30px;height:30px;border-radius:50%;background:var(--puL);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--pu);flex-shrink:0}
+#topbar{position:sticky;top:0;background:rgba(20,24,32,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--bd);height:var(--top);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:40}
+.tb-t{font-size:14px;font-weight:700}.tb-r{display:flex;align-items:center;gap:8px}
+.chip{font-size:11px;padding:3px 10px;border-radius:20px;border:1px solid var(--bd);color:var(--t2)}
+.chip.live{border-color:var(--g);color:var(--g);background:var(--gL);display:flex;align-items:center;gap:4px}
+.ldot{width:5px;height:5px;border-radius:50%;background:var(--g);animation:p2 2s infinite}
+@keyframes p2{0%,100%{box-shadow:0 0 0 0 rgba(16,182,122,.4)}50%{box-shadow:0 0 0 5px transparent}}
+.page{padding:20px;display:none}.page.on{display:block}
+/* STATS */
+.sg{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.sc{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r2);padding:13px 15px;transition:var(--tr)}
+.sc:hover{border-color:var(--bdL)}
+.sc-l{font-size:11px;color:var(--t2);margin-bottom:5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+.sc-v{font-size:21px;font-weight:700;line-height:1;letter-spacing:-.02em}
+.sc-d{font-size:11px;margin-top:4px;color:var(--t3)}.sc-d.up{color:var(--g)}.sc-d.wn{color:var(--a)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:14px}
+.panel{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rL2);overflow:hidden}
+.ph{padding:12px 15px 9px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between}
+.pt{font-size:13px;font-weight:700}.pa{font-size:11px;color:var(--pu);cursor:pointer;font-weight:600}
+.pb{padding:12px 15px}
+/* TASK CARDS */
+.tc{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r2);padding:14px;margin-bottom:10px;transition:var(--tr)}
+.tc:hover{border-color:var(--bdL)}
+.tc.new-task{border-color:var(--pu);animation:glow .8s ease}
+@keyframes glow{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 3px rgba(123,92,240,.25)}}
+.tc-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.tc-title{font-size:13px;font-weight:600;line-height:1.4}
+.tc-meta{font-size:11px;color:var(--t2);margin-top:2px}
+.tc-body{font-size:12px;color:var(--t2);margin-bottom:10px;line-height:1.55}
+.tc-ft{display:flex;align-items:center;justify-content:space-between}
+.tc-loc{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:5px}
+/* TYPE CARDS */
+.vtg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.vtc{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r2);padding:14px;cursor:pointer;transition:var(--tr)}
+.vtc:hover,.vtc.on{border-color:var(--pu);background:var(--puG)}
+.vt-ic{font-size:22px;margin-bottom:8px}
+.vt-n{font-size:13px;font-weight:700;margin-bottom:4px}
+.vt-d{font-size:11px;color:var(--t2);line-height:1.5;margin-bottom:8px}
+.vt-tags{display:flex;flex-wrap:wrap;gap:5px}
+.vt-tag{background:var(--bg5);border-radius:4px;font-size:10px;padding:2px 7px;color:var(--t3);font-weight:600}
+/* CERT CARDS */
+.certs-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px;margin-bottom:16px}
+.cert-c{background:var(--bg3);border:1px solid var(--bd);border-radius:var(--r2);padding:14px;text-align:center}
+.cert-c.earned{border-color:var(--a);background:var(--aL)}
+.cert-medal{font-size:30px;margin-bottom:7px;filter:grayscale(1);opacity:.3}
+.cert-c.earned .cert-medal{filter:none;opacity:1}
+.cert-ct{font-size:12px;font-weight:700;margin-bottom:3px}
+.cert-cs{font-size:10px;color:var(--t3)}
+/* BADGES */
+.badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px}
+.b-crit{background:var(--rL);color:var(--r)}.b-high{background:var(--aL);color:var(--a)}.b-norm{background:var(--gL);color:var(--g)}.b-pend{background:var(--aL);color:var(--a)}.b-done{background:var(--bg5);color:var(--t3)}
+/* FORMS */
+.fr{margin-bottom:12px}.fl{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:5px;display:block;letter-spacing:.04em}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--bd);border-radius:7px;padding:9px 12px;color:var(--t);font-size:13px;font-family:var(--font);outline:none;transition:var(--tr)}
+.fi:focus{border-color:var(--pu)}.fi::placeholder{color:var(--t3)}
+.fr2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.fi-ta{resize:vertical;min-height:70px}
+.fi-sel{appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238899BB'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+.fhint{font-size:11px;color:var(--t3);margin-top:4px;line-height:1.5}
+/* BUTTONS */
+.btn{font-size:12px;padding:6px 13px;border-radius:7px;cursor:pointer;font-family:var(--font);border:1px solid transparent;transition:var(--tr);font-weight:600;display:inline-flex;align-items:center;gap:5px}
+.btn-p{background:var(--pu);color:#fff}.btn-p:hover{background:#6A4DD6}
+.btn-g{background:transparent;border-color:var(--bd);color:var(--t2)}.btn-g:hover{border-color:var(--bdL);color:var(--t)}
+.btn-ok{background:var(--gL);color:var(--g);border-color:rgba(16,182,122,.25)}.btn-ok:hover{background:rgba(16,182,122,.2)}
+.btn-no{background:var(--rL);color:var(--r);border-color:rgba(224,80,80,.25)}
+.btn-full{width:100%;justify-content:center;padding:10px}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity var(--tr);backdrop-filter:blur(5px)}
+.modal-bg.open{opacity:1;pointer-events:auto}
+.modal{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rL2);padding:22px;width:460px;max-width:94vw;max-height:90vh;overflow-y:auto;transform:scale(.95);transition:transform var(--tr)}
+.modal-bg.open .modal{transform:scale(1)}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:13px}
+.mfoot{display:flex;gap:8px;justify-content:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--bd)}
+/* PROFILE */
+.prof-hd{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--bd);border-radius:var(--rL2);padding:22px;margin-bottom:14px;display:flex;align-items:center;gap:18px}
+.prof-av{width:60px;height:60px;border-radius:50%;background:var(--puL);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;color:var(--pu);flex-shrink:0;border:2px solid var(--pu)}
+.prof-name{font-size:18px;font-weight:700}
+.prof-role{font-size:12px;color:var(--t2);margin-top:2px}
+.prof-stats{display:flex;gap:22px;margin-top:10px}
+.ps-v{font-size:18px;font-weight:700;color:var(--pu)}.ps-l{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em}
+/* AUTH */
+#auth{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;align-items:center;justify-content:center}
+.auth-box{background:var(--bg2);border:1px solid var(--bd);border-radius:var(--rL2);padding:30px;width:370px;box-shadow:0 8px 40px rgba(0,0,0,.5)}
+#toasts{position:fixed;top:60px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:6px;pointer-events:none}
+.toast{background:var(--bg2);border:1px solid var(--bd);color:var(--t);padding:9px 14px;border-radius:8px;font-size:12px;max-width:290px;opacity:0;transform:translateX(14px);transition:all .3s;line-height:1.4}
+.toast.show{opacity:1;transform:translateX(0)}.toast.success{border-color:var(--g)}.toast.warn{border-color:var(--a)}.toast.error{border-color:var(--r)}
+.empty{text-align:center;padding:24px;color:var(--t3);font-size:13px;line-height:1.7}
+.skel{background:linear-gradient(90deg,var(--bg3) 25%,var(--bg4) 50%,var(--bg3) 75%);background-size:200%;animation:sh 1.4s infinite;border-radius:4px}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+@media(max-width:720px){.sg{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}.vtg{grid-template-columns:1fr}.certs-grid{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+
+<!-- AUTH -->
+<div id="auth">
+  <div class="auth-box">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px">
+      <div class="sb-lm" style="width:34px;height:34px;border-radius:9px"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg></div>
+      <div><div style="font-size:16px;font-weight:700">Volunteer Portal</div><div style="font-size:11px;color:var(--t3)">Skilled & general — task driven</div></div>
+    </div>
+    <div class="fr"><label class="fl">Phone number</label><input class="fi" id="aPhone" type="tel" placeholder="+91 98765 43210"></div>
+    <div id="aOtpRow" style="display:none"><div class="fr"><label class="fl">OTP (dev: 123456)</label><input class="fi" id="aOtp" type="text" maxlength="6" placeholder="6-digit OTP"></div></div>
+    <div id="aBtnRow"><button class="btn btn-p btn-full" style="font-size:13px;padding:10px" onclick="authReq()">Request OTP</button></div>
+    <div style="font-size:11px;color:var(--t3);text-align:center;margin-top:11px">Dev OTP is always <strong style="color:var(--g)">123456</strong></div>
+  </div>
+</div>
+
+<!-- SHELL -->
+<div id="shell">
+  <div id="sb">
+    <div class="sb-brand">
+      <div class="sb-lm"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg></div>
+      <div><div class="sb-n">Volunteer</div><div class="sb-s">NRFRP Platform</div></div>
+    </div>
+    <div class="sb-sec">TASKS</div>
+    <div class="sb-item on" onclick="go('dashboard',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>My dashboard
+    </div>
+    <div class="sb-item" onclick="go('available',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Available tasks
+      <span class="sb-badge g" id="b-avail">—</span>
+    </div>
+    <div class="sb-item" onclick="go('active',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>Active tasks
+      <span class="sb-badge a" id="b-active">—</span>
+    </div>
+    <div class="sb-item" onclick="go('history',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>Task history
+    </div>
+    <div class="sb-sec">ACCOUNT</div>
+    <div class="sb-item" onclick="go('profile',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile & skills
+    </div>
+    <div class="sb-item" onclick="go('certs',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>Certificates
+    </div>
+    <div class="sb-foot">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="sb-av" id="vAv">V</div>
+        <div><div style="font-size:12px;font-weight:600" id="vEmail">—</div><div style="font-size:10px;color:var(--t3)" id="vStatus">Pending approval</div></div>
+        <button class="btn btn-g" style="font-size:11px;margin-left:auto;padding:4px 9px" onclick="logout()">Out</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="topbar">
+      <div class="tb-t" id="tbTitle">My dashboard</div>
+      <div class="tb-r">
+        <span class="chip live"><div class="ldot"></div>Live</span>
+        <a href="/public" style="font-size:11px;color:var(--t2);text-decoration:none">← Public</a>
+      </div>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div class="page on" id="pg-dashboard">
+      <div class="sg">
+        <div class="sc"><div class="sc-l">Tasks completed</div><div class="sc-v" id="d-done" style="color:var(--g)">—</div><div class="sc-d up">All time</div></div>
+        <div class="sc"><div class="sc-l">Active tasks</div><div class="sc-v" id="d-active" style="color:var(--a)">—</div><div class="sc-d wn">In progress</div></div>
+        <div class="sc"><div class="sc-l">Rating</div><div class="sc-v" id="d-rating">—</div><div class="sc-d">From admin reviews</div></div>
+        <div class="sc"><div class="sc-l">Account status</div><div class="sc-v" id="d-status" style="font-size:13px;font-weight:600;padding-top:4px">—</div></div>
+      </div>
+      <div class="g2">
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:11px;display:flex;align-items:center;justify-content:space-between">
+            My assigned tasks
+            <button class="btn btn-p" style="font-size:11px;padding:5px 12px" onclick="go('available',null)">Browse more →</button>
+          </div>
+          <div id="myTasksList"><div class="skel" style="height:80px;border-radius:10px;margin-bottom:10px"></div><div class="skel" style="height:80px;border-radius:10px"></div></div>
+        </div>
+        <div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:11px">How to contribute</div>
+          <div class="panel">
+            <div class="pb">
+              ${[['1','Choose your skills','Go to Profile & skills and tell us what you can do — medical, legal, transport, field work, digital.'],['2','Get assigned tasks','Admin creates tasks and assigns to volunteers based on skills and area. You get notified instantly.'],['3','Accept and execute','Accept the task within 2 hours. Complete it, photograph proof (geotagged), submit.'],['4','Get rated','Admin reviews your proof and rates the task. Ratings build your profile.'],['5','Earn certificates','5, 10, 50, 100 tasks — each milestone earns a digitally signed certificate.']]
+              .map(([n,t,d])=>`<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd)"><div style="width:22px;height:22px;border-radius:50%;background:var(--puL);color:var(--pu);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${n}</div><div><div style="font-size:12px;font-weight:600;margin-bottom:2px">${t}</div><div style="font-size:11px;color:var(--t2);line-height:1.5">${d}</div></div></div>`).join('')}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AVAILABLE TASKS -->
+    <div class="page" id="pg-available">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div><div style="font-size:16px;font-weight:700">Available tasks</div><div style="font-size:12px;color:var(--t3);margin-top:1px">Tasks waiting for a volunteer — accept within the 2-hour window</div></div>
+        <div style="display:flex;gap:6px" id="taskFilters">
+          <button class="btn btn-g on" style="font-size:11px" onclick="filterTasks('all',this)">All</button>
+          <button class="btn btn-g" style="font-size:11px" onclick="filterTasks('delivery',this)">Delivery</button>
+          <button class="btn btn-g" style="font-size:11px" onclick="filterTasks('verification',this)">Verify</button>
+          <button class="btn btn-g" style="font-size:11px" onclick="filterTasks('medical_visit',this)">Medical</button>
+        </div>
+      </div>
+      <div id="availTasksList"><div class="skel" style="height:100px;border-radius:10px;margin-bottom:10px"></div><div class="skel" style="height:90px;border-radius:10px"></div></div>
+    </div>
+
+    <!-- ACTIVE TASKS -->
+    <div class="page" id="pg-active">
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px">Active tasks</div>
+      <div id="activeTasksList"><div class="skel" style="height:100px;border-radius:10px"></div></div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="pg-history">
+      <div style="font-size:16px;font-weight:700;margin-bottom:14px">Task history</div>
+      <div id="historyList"><div class="skel" style="height:200px;border-radius:10px"></div></div>
+    </div>
+
+    <!-- PROFILE -->
+    <div class="page" id="pg-profile">
+      <div class="prof-hd" id="profHeader">
+        <div class="prof-av" id="profAv">V</div>
+        <div>
+          <div class="prof-name" id="profName">Loading...</div>
+          <div class="prof-role" id="profRole">Volunteer</div>
+          <div class="prof-stats">
+            <div><div class="ps-v" id="ps-tasks">—</div><div class="ps-l">Tasks</div></div>
+            <div><div class="ps-v" id="ps-rating">—</div><div class="ps-l">Rating</div></div>
+            <div><div class="ps-v" id="ps-tier">—</div><div class="ps-l">Tier</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph"><span class="pt">Personal details</span></div>
+        <div class="pb">
+          <div class="fr2">
+            <div><label class="fl">Display name</label><input class="fi" id="pName" placeholder="Your name"></div>
+            <div><label class="fl">Service radius (km)</label><input class="fi" id="pRadius" type="number" value="10" min="1" max="150"></div>
+          </div>
+          <div class="fr2">
+            <div><label class="fl">Vehicle type (optional)</label><input class="fi" id="pVehicle" placeholder="Car / Bike / Auto"></div>
+            <div><label class="fl">Passenger capacity</label><input class="fi" id="pCap" type="number" placeholder="e.g. 4"></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:1px solid var(--bd)">
+            <span style="font-size:13px;color:var(--t2)">Show on public leaderboard</span>
+            <div style="width:34px;height:18px;background:var(--bg5);border-radius:9px;position:relative;cursor:pointer;border:1px solid var(--bd);transition:var(--tr)" id="pubTog" onclick="this.classList.toggle('on');this.style.background=this.classList.contains('on')?'var(--pu)':'var(--bg5)';this.querySelector('.th').style.left=this.classList.contains('on')?'17px':'2px'"><div class="th" style="position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left var(--tr)"></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel" style="margin-bottom:14px">
+        <div class="ph"><span class="pt">How do you want to help?</span><span class="pa" style="font-size:11px">Select all that apply</span></div>
+        <div class="pb">
+          <div class="vtg" id="skillGrid">
+            ${[
+              {id:'medical',ic:'🏥',n:'Skilled — Medical',d:'Doctors, nurses, pharmacists. Conduct checkups, review prescriptions, advise on treatment.',tags:['Doctor','Nurse','Pharmacist','Psychologist']},
+              {id:'legal',ic:'⚖️',n:'Skilled — Legal & Finance',d:'Lawyers, CAs, social workers. Help navigate schemes, hospital billing, legal aid.',tags:['Lawyer','CA','Social worker']},
+              {id:'education',ic:'🎓',n:'Skilled — Education',d:'Teachers, tutors, professors. Classes at orphanages, remote tutoring, skill development.',tags:['Teacher','Tutor','Professor']},
+              {id:'technical',ic:'🔧',n:'Skilled — Technical',d:'Engineers, IT, architects. Repair infrastructure, equipment setup, vocational training.',tags:['Engineer','IT','Architect']},
+              {id:'transport',ic:'🚗',n:'General — Transport',d:'Car / bike / truck owners. Pickup donations, deliver goods, transport patients.',tags:['Car','Bike','Truck']},
+              {id:'field',ic:'🏃',n:'General — Field worker',d:'On-ground tasks: case visits, food serving, clothes sorting, disaster relief, shelter setup.',tags:['Field work','Food serving','Packing']},
+              {id:'event',ic:'📋',n:'General — Event organiser',d:'Plan drives, food distribution events, camp logistics, venue setup, documentation.',tags:['Event mgmt','Photography','Logistics']},
+              {id:'digital',ic:'💻',n:'General — Digital',d:'Social media, translation, call-centre support, form-filling for illiterate users.',tags:['Social media','Translation','Data entry']},
+            ].map(v=>`<div class="vtc" id="vt-${v.id}" onclick="toggleSkill('${v.id}',this)">
+              <div class="vt-ic">${v.ic}</div>
+              <div class="vt-n">${v.n}</div>
+              <div class="vt-d">${v.d}</div>
+              <div class="vt-tags">${v.tags.map(t=>`<span class="vt-tag">${t}</span>`).join('')}</div>
+            </div>`).join('')}
+          </div>
+          <div id="certUploadSection" style="display:none;margin-top:4px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--a)">⚠ Certificate required for skilled roles</div>
+            <div class="fr"><label class="fl">Upload degree / licence / certificate</label>
+              <input class="fi" type="file" accept="image/*,.pdf">
+              <div class="fhint">Admin reviews skill documents before activating skilled role. Driving licence mandatory for transport volunteers.</div>
+            </div>
+          </div>
+          <button class="btn btn-p" style="width:100%;justify-content:center;padding:10px;margin-top:8px;font-size:13px" onclick="saveProfile()">Save profile & skills</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CERTIFICATES -->
+    <div class="page" id="pg-certs">
+      <div style="font-size:16px;font-weight:700;margin-bottom:5px">Certificates</div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:16px">Earned at milestones: 5, 10, 50, 100 tasks. Digitally signed by admin. Downloadable as PDF.</div>
+      <div class="certs-grid" id="certsGrid"></div>
+      <div class="panel"><div class="pb" style="text-align:center;padding:28px">
+        <div style="font-size:30px;margin-bottom:10px">🌟</div>
+        <div style="font-weight:700;margin-bottom:5px">Complete tasks to earn certificates</div>
+        <div style="font-size:12px;color:var(--t2);margin-bottom:14px">Each certificate shows your category, task count, and contribution summary. Signed by admin.</div>
+        <button class="btn btn-p btn-full" onclick="go('available',null)">Browse available tasks</button>
+      </div></div>
+    </div>
+  </div>
+</div>
+
+<!-- MODALS -->
+<div class="modal-bg" id="modalBg" onclick="if(event.target===this)closeModal()">
+  <div class="modal"><div id="mBody"></div></div>
+</div>
+
+<script>
+// In your HTML script tags:
+const API = 'http://localhost:4000/api';
+let token=localStorage.getItem('nrfrp_vol_token');
+let availTasks=[],activeTasksArr=[],myProfile={},filterType='all';
+
+// AUTH
+async function authReq(){
+  const ph=document.getElementById('aPhone').value.trim();
+  if(!ph){toast('Enter phone number');return}
+  const r=await fetch(API+'/auth/otp/request',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph})}).then(x=>x.json()).catch(()=>({error:'Network'}));
+  if(r.success){
+    document.getElementById('aOtpRow').style.display='block';
+    document.getElementById('aBtnRow').innerHTML='<button class="btn btn-p btn-full" style="font-size:13px;padding:10px" onclick="authVerify()">Verify OTP</button>';
+    toast('OTP sent · Dev: 123456');
+  } else toast(r.error||'Failed');
+}
+async function authVerify(){
+  const ph=document.getElementById('aPhone').value.trim();
+  const otp=document.getElementById('aOtp').value.trim();
+  if(otp.length!==6){toast('Enter 6-digit OTP');return}
+  const r=await fetch(API+'/auth/otp/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:ph,otp,role:'volunteer'})}).then(x=>x.json()).catch(()=>({error:'Network'}));
+  if(r.token){
+    token=r.token;localStorage.setItem('nrfrp_vol_token',token);
+    document.getElementById('auth').style.display='none';
+    document.getElementById('shell').classList.add('vis');
+    document.getElementById('vEmail').textContent=r.user.email||ph;
+    document.getElementById('vAv').textContent=(r.user.email||ph).substring(0,2).toUpperCase();
+    loadDashboard();initWS();
+  } else toast(r.error||'Login failed');
+}
+function logout(){localStorage.removeItem('nrfrp_vol_token');location.reload()}
+
+// NAV
+function go(page,el){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  const pg=document.getElementById('pg-'+page);if(pg)pg.classList.add('on');
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('on'));if(el)el.classList.add('on');
+  else{const f=document.querySelector(`.sb-item[onclick*="'${page}'"]`);if(f)f.classList.add('on')}
+  const ts={dashboard:'My dashboard',available:'Available tasks',active:'Active tasks',history:'Task history',profile:'Profile & skills',certs:'Certificates'};
+  document.getElementById('tbTitle').textContent=ts[page]||page;
+  if(page==='available')loadAvailable();
+  if(page==='active')loadActiveTasks();
+  if(page==='history')loadHistory();
+  if(page==='profile')loadProfile();
+  if(page==='certs')loadCerts();
+}
+
+// HELPERS
+const H=()=>({'Content-Type':'application/json','Authorization':'Bearer '+token});
+async function apiGet(p){const r=await fetch(API+p,{headers:H()});if(r.status===401){logout();return{}}return r.json().catch(()=>({}))}
+async function apiPatch(p,b){const r=await fetch(API+p,{method:'PATCH',headers:H(),body:JSON.stringify(b)});return r.json().catch(()=>({}))}
+const fmt=n=>{n=parseFloat(n)||0;if(n>=100000)return'₹'+(n/100000).toFixed(1)+'L';if(n>=1000)return'₹'+(n/1000).toFixed(1)+'K';return'₹'+Math.round(n).toLocaleString('en-IN')};
+const ago=d=>{if(!d)return'';const m=Math.floor((Date.now()-new Date(d))/60000);if(m<1)return'just now';if(m<60)return m+'m ago';const h=Math.floor(m/60);if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago'};
+function toast(msg,type=''){const c=document.getElementById('toasts');const t=document.createElement('div');t.className='toast '+(type||'');t.textContent=msg;c.appendChild(t);requestAnimationFrame(()=>t.classList.add('show'));setTimeout(()=>{t.classList.remove('show');setTimeout(()=>t.remove(),300)},4500)}
+function openModal(html){document.getElementById('mBody').innerHTML=html;document.getElementById('modalBg').classList.add('open')}
+function closeModal(){document.getElementById('modalBg').classList.remove('open')}
+
+// LOAD DASHBOARD
+async function loadDashboard(){
+  const d=await apiGet('/volunteer/dashboard');
+  const p=d.profile||{};const s=d.stats||{};
+  myProfile=p;
+  document.getElementById('d-done').textContent=parseInt(s.tasks_completed||p.tasks_completed)||0;
+  const actv=d.tasks?.filter(t=>t.status==='accepted'||t.status==='proof_uploaded').length||0;
+  document.getElementById('d-active').textContent=actv;
+  document.getElementById('b-active').textContent=actv||'—';
+  document.getElementById('d-rating').textContent=p.rating?parseFloat(p.rating).toFixed(1)+'★':'—';
+  const statusMap={active:'Active ✓',pending:'⏳ Pending',suspended:'Suspended'};
+  document.getElementById('d-status').textContent=statusMap[p.status||'pending']||p.status||'—';
+  document.getElementById('vStatus').textContent=p.tier?(p.tier+' · '+(p.status||'pending')):p.status||'pending';
+  renderMyTasks(d.tasks||[]);
+  loadAvailCount();
+}
+
+function renderMyTasks(tasks){
+  const el=document.getElementById('myTasksList');if(!el)return;
+  if(!tasks.length){el.innerHTML='<div class="empty">No tasks assigned yet.<br>Complete your profile so admin can assign tasks.</div>';return}
+  el.innerHTML=tasks.map(t=>taskCard(t,true)).join('');
+}
+
+async function loadAvailCount(){
+  const d=await apiGet('/volunteer/tasks/available');
+  const avail=d.tasks||[];
+  availTasks=avail;
+  document.getElementById('b-avail').textContent=avail.length||'—';
+}
+
+async function loadAvailable(){
+  const d=await apiGet('/volunteer/tasks/available');
+  availTasks=d.tasks||[];
+  document.getElementById('b-avail').textContent=availTasks.length||'—';
+  renderAvailTasks();
+}
+function filterTasks(type,btn){
+  filterType=type;
+  document.querySelectorAll('#taskFilters .btn').forEach(b=>{b.classList.remove('on','.btn-p');b.className='btn btn-g';if(b.textContent.toLowerCase().includes(type)||type==='all'){}});
+  btn.className='btn btn-p';
+  renderAvailTasks();
+}
+function renderAvailTasks(){
+  const el=document.getElementById('availTasksList');if(!el)return;
+  const arr=filterType==='all'?availTasks:availTasks.filter(t=>t.type===filterType);
+  if(!arr.length){el.innerHTML='<div class="empty">No available tasks right now.<br>Check back later or update your profile so more tasks appear.</div>';return}
+  el.innerHTML=arr.map(t=>taskCard(t,false)).join('');
+}
+async function loadActiveTasks(){
+  const d=await apiGet('/volunteer/dashboard');
+  activeTasksArr=(d.tasks||[]).filter(t=>t.status==='accepted'||t.status==='proof_uploaded');
+  const el=document.getElementById('activeTasksList');if(!el)return;
+  if(!activeTasksArr.length){el.innerHTML='<div class="empty">No active tasks. <a href="#" onclick="go(\'available\',null);return false" style="color:var(--pu);font-weight:600">Browse available</a></div>';return}
+  el.innerHTML=activeTasksArr.map(t=>taskCard(t,true)).join('');
+}
+async function loadHistory(){
+  const d=await apiGet('/volunteer/tasks/history');
+  const el=document.getElementById('historyList');if(!el)return;
+  const hist=d.tasks||[];
+  if(!hist.length){el.innerHTML='<div class="empty">No completed tasks yet.</div>';return}
+  el.innerHTML=hist.map(t=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--bd)">
+    <div style="flex:1">
+      <div style="font-size:13px;font-weight:600">${t.title||t.type}</div>
+      <div style="font-size:11px;color:var(--t2);margin-top:2px">${t.type} · ${ago(t.completed_at||t.created_at)}${t.admin_rating?' · ★ '+t.admin_rating:''}</div>
+    </div>
+    <span class="badge b-done">Done</span>
+  </div>`).join('');
+}
+
+// TASK CARD
+function taskCard(t,assigned){
+  const uc={critical:'b-crit',high:'b-high',normal:'b-norm'};
+  const typeIco={delivery:'📦',verification:'🔍',pickup:'📥',medical_visit:'🏥',transport:'🚗',other:'📋'};
+  const actions=assigned
+    ? (t.status==='accepted'?`<button class="btn btn-ok" style="font-size:11px" onclick="openProofModal('${t.id}')">Upload proof</button>`
+      :t.status==='proof_uploaded'?`<span style="font-size:11px;color:var(--a)">⏳ Awaiting admin review</span>`
+      :`<button class="btn btn-ok" style="font-size:11px" onclick="acceptTask('${t.id}',this)">Accept task</button><button class="btn btn-no" style="font-size:11px" onclick="declineTask('${t.id}',this)">Decline</button>`)
+    : `<button class="btn btn-p" style="font-size:11px" onclick="acceptTask('${t.id}',this)">Accept →</button>`;
+  return`<div class="tc" id="tc-${t.id}">
+    <div class="tc-hd">
+      <div>
+        <div class="tc-title">${t.title||t.type}</div>
+        <div class="tc-meta">${typeIco[t.type]||'📋'} ${t.type?.toUpperCase()} · ${t.drive_name||t.district||'—'}</div>
+      </div>
+      <span class="badge ${uc[t.priority]||'b-norm'}">${t.priority||'normal'}</span>
+    </div>
+    ${t.description?`<div class="tc-body">${t.description}</div>`:''}
+    <div class="tc-ft">
+      <div class="tc-loc">
+        ${t.pickup_address?`📍 ${t.pickup_address.substring(0,40)}...`:''}
+        ${t.deadline?`· ⏰ ${ago(t.deadline)}`:' · '+ago(t.created_at)}
+      </div>
+      <div style="display:flex;gap:5px">${actions}</div>
+    </div>
+  </div>`;
+}
+
+async function acceptTask(id,btn){
+  if(btn){btn.disabled=true;btn.textContent='Accepting...'}
+  const r=await apiPatch('/volunteer/tasks/'+id+'/accept',{});
+  if(r.task){
+    toast('Task accepted! GPS tracking active.','success');
+    const tc=document.getElementById('tc-'+id);
+    if(tc)tc.querySelector('.tc-ft div:last-child').innerHTML=`<button class="btn btn-ok" style="font-size:11px" onclick="openProofModal('${id}')">Upload proof</button>`;
+    document.getElementById('b-active').textContent=parseInt(document.getElementById('b-active').textContent||'0')+1;
+    loadDashboard();
+  } else toast(r.error||'Failed','error');
+}
+async function declineTask(id,btn){
+  if(btn){btn.closest('.tc').style.opacity='.5'}
+  toast('Task declined');
+  loadAvailable();loadDashboard();
+}
+
+function openProofModal(taskId){
+  openModal(`<h3>Submit task completion proof</h3>
+  <div style="background:var(--gL);border:1px solid rgba(16,182,122,.2);border-radius:8px;padding:10px 12px;margin-bottom:13px;font-size:12px;color:var(--g)">
+    📍 Your photo must be geotagged and taken within 500m of the task location. It will be reviewed by admin before the task is marked complete.
+  </div>
+  <div class="fr"><label class="fl">Photo proof (geotagged) *</label>
+    <input class="fi" type="file" accept="image/*" capture="environment" id="proofFile">
+    <div class="fhint">Use your phone camera for automatic geotagging. Photo must show the task completion clearly.</div>
+  </div>
+  <div class="fr"><label class="fl">Notes (optional)</label>
+    <textarea class="fi fi-ta" id="proofNotes" placeholder="Any notes about the task, difficulties, or observations for admin..."></textarea>
+  </div>
+  <div class="mfoot">
+    <button class="btn btn-g" onclick="closeModal()">Cancel</button>
+    <button class="btn btn-p" onclick="submitProof('${taskId}')">Submit proof</button>
+  </div>`);
+}
+async function submitProof(taskId){
+  const notes=document.getElementById('proofNotes')?.value||'';
+  let lat=null,lng=null;
+  if(navigator.geolocation){
+    try{const p=await new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{timeout:5000}));lat=p.coords.latitude;lng=p.coords.longitude;}catch(e){}
+  }
+  const r=await apiPatch('/volunteer/tasks/'+taskId+'/complete',{volunteer_notes:notes,proof_lat:lat,proof_lng:lng});
+  if(r.task){closeModal();toast('Proof submitted! Admin will verify and rate.','success');loadDashboard();}
+  else toast(r.error||'Failed','error');
+}
+
+// PROFILE
+async function loadProfile(){
+  const d=await apiGet('/volunteer/dashboard');
+  const p=d.profile||{};myProfile=p;
+  document.getElementById('profAv').textContent=(p.display_name||'V').substring(0,2).toUpperCase();
+  document.getElementById('profName').textContent=p.display_name||'Your name';
+  document.getElementById('profRole').textContent=(p.tier||'field')+(p.skills?.length?' · '+p.skills.slice(0,2).join(', '):'');
+  document.getElementById('ps-tasks').textContent=p.tasks_completed||0;
+  document.getElementById('ps-rating').textContent=p.rating?parseFloat(p.rating).toFixed(1)+'★':'—';
+  document.getElementById('ps-tier').textContent=p.tier||'field';
+  if(p.display_name)document.getElementById('pName').value=p.display_name;
+  if(p.service_radius)document.getElementById('pRadius').value=p.service_radius;
+  if(p.vehicle_type)document.getElementById('pVehicle').value=p.vehicle_type;
+  if(p.vehicle_capacity)document.getElementById('pCap').value=p.vehicle_capacity;
+  if(p.is_public)document.getElementById('pubTog').classList.add('on');
+  (p.skills||[]).forEach(skill=>{const el=document.getElementById('vt-'+skill);if(el)el.classList.add('on')});
+}
+
+function toggleSkill(id,el){
+  el.classList.toggle('on');
+  const hasSkilled=document.querySelectorAll('#vt-medical.on,#vt-legal.on,#vt-education.on,#vt-technical.on').length>0;
+  document.getElementById('certUploadSection').style.display=hasSkilled?'block':'none';
+}
+
+async function saveProfile(){
+  const skills=Array.from(document.querySelectorAll('.vtc.on')).map(el=>el.id.replace('vt-',''));
+  if(!skills.length){toast('Select at least one way to help','warn');return}
+  const r=await apiPatch('/volunteer/profile',{
+    display_name:document.getElementById('pName').value.trim()||null,
+    skills,
+    service_radius:parseInt(document.getElementById('pRadius').value)||10,
+    vehicle_type:document.getElementById('pVehicle').value.trim()||null,
+    vehicle_capacity:parseInt(document.getElementById('pCap').value)||null,
+    is_public:document.getElementById('pubTog').classList.contains('on')
+  });
+  if(r.success){toast('Profile saved! Admin will review and activate your account.','success');loadDashboard();}
+  else toast(r.error||'Failed','error');
+}
+
+// CERTS
+function loadCerts(){
+  const done=parseInt(document.getElementById('d-done').textContent)||0;
+  const milestones=[{n:5,lbl:'5 tasks'},{n:10,lbl:'10 tasks'},{n:50,lbl:'50 tasks'},{n:100,lbl:'Champion'}];
+  document.getElementById('certsGrid').innerHTML=milestones.map(m=>`<div class="cert-c ${done>=m.n?'earned':''}">
+    <div class="cert-medal">${done>=m.n?'🏅':'🔒'}</div>
+    <div class="cert-ct">${m.lbl}</div>
+    <div class="cert-cs">${done>=m.n?'<a href="#" style="color:var(--a);font-weight:600;font-size:11px">Download PDF</a>':'Complete '+m.n+' tasks to unlock'}</div>
+  </div>`).join('');
+}
+
+// WEBSOCKET
+function initWS(){
+  const sock=io(window.location.origin,{auth:{token},transports:['websocket','polling']});
+  sock.on('connect',()=>document.querySelector('.chip.live').style.borderColor='var(--g)');
+  sock.on('disconnect',()=>document.querySelector('.chip.live').style.borderColor='var(--r)');
+  sock.on('task:update',d=>{
+    if(d.type==='new_assignment'){toast('🔔 New task assigned to you!');const tc=document.getElementById('tc-'+d.taskId);if(tc)tc.classList.add('new-task');loadDashboard();}
+    if(d.type==='rated'){toast('★ Admin rated your task!','success');loadDashboard();}
+  });
+  sock.on('stats:update',()=>loadDashboard());
+}
+
+document.addEventListener('DOMContentLoaded',()=>{
+  if(token){
+    fetch(API+'/volunteer/dashboard',{headers:H()}).then(r=>{
+      if(r.status===401){localStorage.removeItem('nrfrp_vol_token');return}
+      document.getElementById('auth').style.display='none';
+      document.getElementById('shell').classList.add('vis');
+      loadDashboard();initWS();
+    }).catch(()=>{});
+  }
+  document.getElementById('aOtp')?.addEventListener('keydown',e=>{if(e.key==='Enter')authVerify()});
+  document.getElementById('aPhone')?.addEventListener('keydown',e=>{if(e.key==='Enter')authReq()});
+});
+</script>
+</body>
+</html>
