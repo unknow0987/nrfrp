@@ -4,7 +4,7 @@ COPY package*.json ./
 RUN npm install --include=dev
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
+RUN npm run build 
 
 FROM node:20-alpine AS runner
 WORKDIR /app
