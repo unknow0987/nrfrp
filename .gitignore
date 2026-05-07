@@ -4,3 +4,5 @@ node_modules/
 dist/
 *.log
 k8s/secrets.yml
+k8s/backend.yml
+
