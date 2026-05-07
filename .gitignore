@@ -1,7 +1,6 @@
 .env
+.env.example
 node_modules/
-node_modules/
-.env
 dist/
 *.log
-.DS_Store
+k8s/secrets.yml

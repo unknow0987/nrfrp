@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+  namespace: nrfrp
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: YOUR_DOCKERHUB_shivam1295334/nrfrp-backend:latest  # ← Change this
+          ports:
+            - containerPort: 4000
+          env:
+            - name: PORT
+              value: "4000"
+            - name: NODE_ENV
+              value: "production"
+            - name: DATABASE_URL
+              value: "postgresql://nrfrp:$(DB_PASSWORD)@postgres:5432/nrfrp"
+            - name: REDIS_URL
+              value: "redis://redis:6379"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: nrfrp-secrets
+                  key: DB_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nrfrp-secrets
+                  key: JWT_SECRET
+            - name: AWS_ACCESS_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: nrfrp-secrets
+                  key: AWS_ACCESS_KEY_ID
+            - name: AWS_SECRET_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: nrfrp-secrets
+                  key: AWS_SECRET_ACCESS_KEY
+            - name: AWS_REGION
+              value: "us-west-2"
+            - name: S3_BUCKET
+              value: "nrfrp-docs"
+            - name: RAZORPAY_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: nrfrp-secrets
+                  key: RAZORPAY_KEY_ID
+            - name: RAZORPAY_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nrfrp-secrets
+                  key: RAZORPAY_KEY_SECRET
+            - name: SES_FROM_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: nrfrp-secrets
+                  key: SES_FROM_EMAIL
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 4000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend
+  namespace: nrfrp
+spec:
+  type: LoadBalancer   # Use NodePort if no cloud load balancer
+  selector:
+    app: backend
+  ports:
+    - port: 80
+      targetPort: 4000
