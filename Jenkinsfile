@@ -36,16 +36,11 @@ pipeline {
             }
         }
 
-        stage('Deploy to Kubernetes') {
+        stage('Deploy to Kubernetes via Ansible') {
             steps {
                 sh """
                     sed -i 's|latest|${IMAGE_TAG}|g' k8s/backend-deployment.yml
-                    kubectl apply -f k8s/postgres-deployment.yml
-                    kubectl apply -f k8s/postgres-service.yml
-                    kubectl apply -f k8s/redis-deployment.yml
-                    kubectl apply -f k8s/redis-service.yml
-                    kubectl apply -f k8s/backend-deployment.yml
-                    kubectl apply -f k8s/backend-service.yml
+                    ansible-playbook -i /etc/ansible/hosts ansible.yml
                 """
             }
         }

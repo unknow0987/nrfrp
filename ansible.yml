@@ -1,0 +1,26 @@
+- hosts: node
+  become: true
+  tasks:
+    - name: create postgres deployment
+      command: kubectl apply -f /home/ubuntu/k8s/postgres-deployment.yml
+
+    - name: create postgres service
+      command: kubectl apply -f /home/ubuntu/k8s/postgres-service.yml
+
+    - name: create redis deployment
+      command: kubectl apply -f /home/ubuntu/k8s/redis-deployment.yml
+
+    - name: create redis service
+      command: kubectl apply -f /home/ubuntu/k8s/redis-service.yml
+
+    - name: create backend deployment
+      command: kubectl apply -f /home/ubuntu/k8s/backend-deployment.yml
+
+    - name: create backend service
+      command: kubectl apply -f /home/ubuntu/k8s/backend-service.yml
+
+    - name: create secrets
+      command: kubectl apply -f /home/ubuntu/k8s/secrets.yml
+
+    - name: create ingress
+      command: kubectl apply -f /home/ubuntu/k8s/ingress.yml
