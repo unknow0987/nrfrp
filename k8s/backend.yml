@@ -1,8 +1,7 @@
-apiVersion: apps/v1
 kind: Deployment
+apiVersion: apps/v1
 metadata:
   name: backend
-  namespace: nrfrp
 spec:
   replicas: 2
   selector:
@@ -15,7 +14,8 @@ spec:
     spec:
       containers:
         - name: backend
-          image: YOUR_DOCKERHUB_shivam1295334/nrfrp-backend:latest  # ← Change this
+          image: YOUR_DOCKERHUB_USERNAME/nrfrp-backend:latest
+          imagePullPolicy: Always
           ports:
             - containerPort: 4000
           env:
@@ -24,64 +24,35 @@ spec:
             - name: NODE_ENV
               value: "production"
             - name: DATABASE_URL
-              value: "postgresql://nrfrp:$(DB_PASSWORD)@postgres:5432/nrfrp"
+              value: "postgresql://nrfrp:Qwer1234@postgres:5432/nrfrp"
             - name: REDIS_URL
               value: "redis://redis:6379"
-            - name: DB_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: nrfrp-secrets
-                  key: DB_PASSWORD
             - name: JWT_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: nrfrp-secrets
-                  key: JWT_SECRET
+              value: "25db690d-b403-48d5-8d4f-b8511558e45d"
             - name: AWS_ACCESS_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: nrfrp-secrets
-                  key: AWS_ACCESS_KEY_ID
+              value: "REPLACE_WITH_NEW_KEY"
             - name: AWS_SECRET_ACCESS_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: nrfrp-secrets
-                  key: AWS_SECRET_ACCESS_KEY
+              value: "REPLACE_WITH_NEW_SECRET"
             - name: AWS_REGION
               value: "us-west-2"
             - name: S3_BUCKET
               value: "nrfrp-docs"
             - name: RAZORPAY_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: nrfrp-secrets
-                  key: RAZORPAY_KEY_ID
+              value: "rzp_test_SmM8Jk4kcyEBXM"
             - name: RAZORPAY_KEY_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: nrfrp-secrets
-                  key: RAZORPAY_KEY_SECRET
+              value: "5R8O3ERaUQiV9WKtQmxFLZxT"
             - name: SES_FROM_EMAIL
-              valueFrom:
-                secretKeyRef:
-                  name: nrfrp-secrets
-                  key: SES_FROM_EMAIL
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 4000
-            initialDelaySeconds: 15
-            periodSeconds: 10
+              value: "shivamwork0695@gmail.com"
 ---
-apiVersion: v1
 kind: Service
+apiVersion: v1
 metadata:
   name: backend
-  namespace: nrfrp
 spec:
-  type: LoadBalancer   # Use NodePort if no cloud load balancer
+  type: NodePort
   selector:
     app: backend
   ports:
-    - port: 80
+    - port: 4000
       targetPort: 4000
+      nodePort: 30000
