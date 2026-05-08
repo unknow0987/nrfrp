@@ -1,15 +1,16 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
-COPY package*.json ./
+COPY backend/package*.json ./
 RUN npm install --include=dev
-COPY tsconfig.json ./
-COPY src ./src
-RUN npm run build 
+COPY backend/tsconfig.json ./
+COPY backend/src ./src
+RUN npm run build
 
 FROM node:20-alpine AS runner
 WORKDIR /app
-COPY package*.json ./
+COPY backend/package*.json ./
 RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
+COPY frontend ./frontend
 EXPOSE 4000
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/index.js"]
