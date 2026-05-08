@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: shivam1295334/nrfrp-backend:latest
+          image: shivam1295334/jenken-server:latest
           imagePullPolicy: Always
           ports:
             - containerPort: 4000
