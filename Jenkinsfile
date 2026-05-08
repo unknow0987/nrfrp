@@ -16,12 +16,12 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            steps {
-                dir('backend') {
-                    sh "docker build -t ${DOCKERHUB_USER}/${IMAGE_NAME}:${IMAGE_TAG} ."
-                }
-            }
-        }
+         steps {
+        sshagent(['Ansible-server']) {
+            sh 'ssh -o StrictHostKeyChecking=no ubuntu@172.31.3.94 "docker build -t my-app-image:latest -f /home/ubuntu/my-project/backend/Dockerfile /home/ubuntu/my-project"'
+             }
+        } 
+    }    
 
         stage('Push to DockerHub') {
             steps {
